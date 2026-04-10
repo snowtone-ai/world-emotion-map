@@ -42,16 +42,19 @@ Layer 1: EMOTION   — 地球・感情色・大気・脈動（常時表示）
 | Negative | Fear, Anger, Sadness, Uncertainty | Coral | `#FF6B6B` |
 
 ### 4-Color Mode（デフォルト）
-直感的な4象限。ほとんどのユーザーはこのモードで十分。
+**「世界は今、喜んでいる？怖がっている？怒っている？悲しんでいる？」**
+Ekmanの基本感情から4つを選出。文化・言語・年齢を問わず、見た瞬間に理解できる。
 
-| 象限 | 含む感情 | 色名 | Hex | 意味 |
-|------|---------|------|-----|------|
-| Warmth | Joy + Trust + Optimism | Gold | `#FFD166` | 希望・安心・喜び |
-| Unease | Fear + Uncertainty | Violet | `#A78BFA` | 不安・先行き不透明 |
-| Tension | Anger + Surprise | Coral | `#FF6B6B` | 怒り・衝撃・緊張 |
-| Sorrow | Sadness | Azure | `#4EA8DE` | 悲しみ・喪失 |
+| 感情 | 集計ロジック | 色 | Hex | 問い |
+|------|------------|-----|-----|------|
+| **Joy** | max(Joy, Trust, Optimism) | Gold | `#FFD166` | この地域は幸せ？ |
+| **Fear** | max(Fear, Uncertainty) | Violet | `#A78BFA` | この地域は不安？ |
+| **Anger** | Anger スコア単体 | Coral | `#FF6B6B` | この地域は怒っている？ |
+| **Sadness** | Sadness スコア単体 | Azure | `#4EA8DE` | この地域は悲しんでいる？ |
 
-各象限のスコア = 含む感情の加重平均。
+- 国の色 = 4つのうちスコアが最も高い感情の色
+- **Surprise は4色モードでは非表示**（文脈依存で正負が曖昧なため、8色モード専用）
+- Trust/Optimism は Joy に、Uncertainty は Fear に自然に吸収される（「信頼≒喜びの一形態」「不確実性≒不安の一形態」）
 
 ### 8-Color Mode（フル）
 データ分析者・リピーター向け。全8感情を個別に表示。
@@ -392,7 +395,7 @@ border: 1px solid var(--wem-glass-border);
 ```
 
 内容: 感情ドット（8px circle）+ ラベル（caption サイズ）を横並び。
-4色モードのとき: `● Warmth  ● Unease  ● Tension  ● Sorrow`
+4色モードのとき: `● Joy  ● Fear  ● Anger  ● Sadness`
 
 ### Global Pulse Indicator
 
@@ -509,11 +512,11 @@ map.flyTo({
 
 数値だけでなく、人間が共感できるコピーを添える。
 
-| スコア帯 | Warmth | Unease | Tension | Sorrow |
-|----------|--------|--------|---------|--------|
-| 80-100 | "A wave of hope" | "Deep anxiety grips" | "Outrage is boiling" | "Profound grief" |
-| 60-79 | "Cautious optimism" | "Growing unrest" | "Tensions rising" | "A cloud of sadness" |
-| 40-59 | "Quiet contentment" | "Uncertainty lingers" | "Simmering frustration" | "Lingering melancholy" |
+| スコア帯 | Joy | Fear | Anger | Sadness |
+|----------|-----|------|-------|---------|
+| 80-100 | "A wave of joy" | "Deep fear grips" | "Outrage is boiling" | "Profound grief" |
+| 60-79 | "Cautious optimism" | "Growing anxiety" | "Anger is rising" | "A cloud of sadness" |
+| 40-59 | "Quiet contentment" | "Unease lingers" | "Simmering frustration" | "Lingering melancholy" |
 | 20-39 | "Muted calm" | "Mild concern" | "Subtle discontent" | "Faint sorrow" |
 | 0-19 | "Stillness" | "Largely at ease" | "At peace" | "Emotionally neutral" |
 

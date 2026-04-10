@@ -62,11 +62,11 @@
   --color-emotion-uncertainty: #94A3B8;
   --color-emotion-optimism: #84CC16;
 
-  /* --- WEM 4-Color Quadrants --- */
-  --color-quadrant-warmth: #FFD166;
-  --color-quadrant-unease: #A78BFA;
-  --color-quadrant-tension: #FF6B6B;
-  --color-quadrant-sorrow: #4EA8DE;
+  /* --- WEM 4-Color Default (Joy/Fear/Anger/Sadness) --- */
+  --color-default-joy: #FFD166;
+  --color-default-fear: #A78BFA;
+  --color-default-anger: #FF6B6B;
+  --color-default-sadness: #4EA8DE;
 
   /* --- WEM 2-Color Polarity --- */
   --color-polarity-positive: #34D399;
