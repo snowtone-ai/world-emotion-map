@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#06060F"/>
+  <!-- Globe circle -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#7C6EF5" stroke-width="12"/>
+  <!-- Latitude lines -->
+  <ellipse cx="256" cy="256" rx="160" ry="60" fill="none" stroke="#7C6EF5" stroke-width="6" opacity="0.5"/>
+  <line x1="96" y1="256" x2="416" y2="256" stroke="#7C6EF5" stroke-width="6" opacity="0.5"/>
+  <!-- Meridian lines -->
+  <ellipse cx="256" cy="256" rx="60" ry="160" fill="none" stroke="#7C6EF5" stroke-width="6" opacity="0.5"/>
+  <!-- Emotion dots (Joy, Fear, Trust, Anger) -->
+  <circle cx="256" cy="160" r="14" fill="#FFD166"/>
+  <circle cx="340" cy="220" r="12" fill="#A78BFA"/>
+  <circle cx="310" cy="310" r="14" fill="#06D6A0"/>
+  <circle cx="180" cy="290" r="12" fill="#FF6B6B"/>
+</svg>
