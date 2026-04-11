@@ -1,0 +1,43 @@
+name: Data Pipeline & Anomaly Detection
+
+on:
+  schedule:
+    - cron: "5 * * * *" # Every hour at :05 (buffer for GDELT publish delay)
+  workflow_dispatch:
+    inputs:
+      skip_pipeline:
+        description: "Skip fetch+aggregate (run anomaly detection only)"
+        type: boolean
+        default: false
+      skip_anomaly:
+        description: "Skip anomaly detection (run pipeline only)"
+        type: boolean
+        default: false
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Fetch GDELT & Aggregate
+        if: ${{ inputs.skip_pipeline != true }}
+        run: pnpm tsx scripts/fetch-gdelt.ts | pnpm tsx scripts/aggregate.ts
+
+      - name: Detect Anomalies
+        if: ${{ inputs.skip_anomaly != true }}
+        run: pnpm tsx scripts/detect-anomaly.ts

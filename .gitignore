@@ -43,3 +43,9 @@ next-env.d.ts
 
 # scripts
 scripts/.gdelt-state.json
+
+# supabase local temp
+supabase/.temp/
+
+# GCP service account key
+service-account.json
