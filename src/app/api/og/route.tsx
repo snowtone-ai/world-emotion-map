@@ -144,7 +144,7 @@ export async function GET() {
                 marginBottom: 28,
               }}
             >
-              {/* Simple globe lines */}
+              {/* Globe + heart logomark */}
               <svg
                 viewBox="0 0 40 40"
                 width="44"
@@ -187,6 +187,12 @@ export async function GET() {
                   stroke="#7C6EF5"
                   strokeWidth="1"
                   opacity="0.4"
+                />
+                {/* Heart — symbolises "feeling what the world feels" */}
+                <path
+                  d="M 20 25 C 14 21 12 18 12 15.5 A 4 4 0 0 1 20 15.5 A 4 4 0 0 1 28 15.5 C 28 18 26 21 20 25 Z"
+                  fill="#F472B6"
+                  opacity="0.88"
                 />
               </svg>
             </div>

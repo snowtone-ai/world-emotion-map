@@ -24,6 +24,7 @@ import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import yaml from "js-yaml";
+import { fetchOgImageBuffer } from "./generate-map-image.js";
 
 // ──────────────────────────────────────────────
 // Bootstrap
@@ -86,19 +87,34 @@ function applyVars(text: string, vars: Record<string, string>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? `{{${key}}}`);
 }
 
-/** Post to X with one retry on failure. Returns post ID. */
-async function postToX(text: string): Promise<string> {
+/** Post to X with optional map image attachment and one retry on failure. Returns post ID. */
+async function postToX(text: string, imageBuf?: Buffer): Promise<string> {
   const preview = text.slice(0, 100).replace(/\n/g, " ");
   console.log(`[post-to-x] Posting: "${preview}..."`);
 
+  // Upload OG image as media (best-effort — falls back to text-only on failure)
+  let mediaId: string | undefined;
+  if (imageBuf) {
+    try {
+      mediaId = await xClient.v1.uploadMedia(imageBuf, { mimeType: "image/png" });
+      console.log(`[post-to-x] Media uploaded: id=${mediaId}`);
+    } catch (err) {
+      console.error("[post-to-x] Media upload failed, falling back to text-only:", err);
+    }
+  }
+
+  const payload = mediaId
+    ? { text, media: { media_ids: [mediaId] as [string] } }
+    : { text };
+
   try {
-    const { data } = await xClient.v2.tweet(text);
+    const { data } = await xClient.v2.tweet(payload);
     console.log(`[post-to-x] ✓ Posted. id=${data.id}`);
     return data.id;
   } catch (err) {
     console.error("[post-to-x] First attempt failed, retrying in 5s...", err);
     await new Promise((r) => setTimeout(r, 5_000));
-    const { data } = await xClient.v2.tweet(text);
+    const { data } = await xClient.v2.tweet(payload);
     console.log(`[post-to-x] ✓ Posted (retry). id=${data.id}`);
     return data.id;
   }
@@ -205,7 +221,10 @@ async function postScheduled(): Promise<void> {
   };
 
   const text = applyVars(tmpl, vars).trim();
-  await postToX(text);
+
+  // Attach OG map image (best-effort)
+  const imageBuf = await fetchOgImageBuffer();
+  await postToX(text, imageBuf ?? undefined);
 }
 
 // ──────────────────────────────────────────────
@@ -255,7 +274,9 @@ async function postAnomaly(): Promise<void> {
   const description = row.description ?? `${row.trigger_id} anomaly detected`;
   const text = `${prefix} ${description}\n\n${suffix}`.trim();
 
-  const postId = await postToX(text);
+  // Attach OG map image (best-effort)
+  const imageBuf = await fetchOgImageBuffer();
+  const postId = await postToX(text, imageBuf ?? undefined);
 
   // Persist the actual post ID
   const { error: updateErr } = await supabase

@@ -16,7 +16,8 @@
     "seed-emotions": "tsx --env-file .env.local scripts/seed-emotions.ts",
     "post-to-x": "tsx --env-file .env.local scripts/post-to-x.ts",
     "post-to-x:scheduled": "tsx --env-file .env.local scripts/post-to-x.ts --mode scheduled",
-    "post-to-x:anomaly": "tsx --env-file .env.local scripts/post-to-x.ts --mode anomaly"
+    "post-to-x:anomaly": "tsx --env-file .env.local scripts/post-to-x.ts --mode anomaly",
+    "generate-map-image": "tsx --env-file .env.local scripts/generate-map-image.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
