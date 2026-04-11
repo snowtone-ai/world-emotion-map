@@ -93,7 +93,7 @@ export function CountryDetailPanel({ countryCode, allData, onClose }: Props) {
       role="complementary"
       aria-label={`Emotion details for ${countryName}`}
       className="animate-slide-in-right w-[360px] lg:w-[400px] h-full glass
-                 border-l border-[var(--wem-glass-border)] hidden md:flex flex-col
+                 border-l border-[var(--wem-glass-border)] flex flex-col
                  overflow-y-auto z-20 flex-shrink-0"
     >
       {/* Header */}

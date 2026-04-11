@@ -131,9 +131,13 @@ export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }:
         "country-label"
       );
 
-      // Click: select country
-      map.on("click", "country-fill", (e) => {
-        const code = e.features?.[0]?.properties?.[
+      // Click: use queryRenderedFeatures for robustness
+      // (layer-specific click may miss if the disputed filter eliminates features)
+      map.on("click", (e) => {
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: ["country-fill"],
+        });
+        const code = features[0]?.properties?.[
           "iso_3166_1_alpha_2"
         ] as string | undefined;
         if (code) onCountrySelectRef.current(code);
