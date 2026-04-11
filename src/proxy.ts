@@ -1,18 +1,25 @@
+import createMiddleware from "next-intl/middleware";
 import { type NextRequest } from "next/server";
+import { routing } from "./i18n/routing";
 import { updateSession } from "@/lib/supabase/proxy";
 
+const intlMiddleware = createMiddleware(routing);
+
 export async function proxy(request: NextRequest) {
-  return await updateSession(request);
+  // 1. Run next-intl middleware (locale routing / rewrites)
+  const response = intlMiddleware(request);
+
+  // 2. Refresh Supabase auth session and merge cookies
+  const supabaseResponse = await updateSession(request);
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie.name, cookie.value, cookie);
+  });
+
+  return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
