@@ -1,6 +1,64 @@
-import { useTranslations } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
+import { createClient } from "@/lib/supabase/server";
+import { MapSection } from "@/components/map/MapSection";
+import type { CountryEmotion, Emotion } from "@/components/map/WorldMap";
 
+// ── Emotion keys ───────────────────────────────────────────────────────────
+const EMOTIONS = [
+  "joy",
+  "trust",
+  "fear",
+  "anger",
+  "sadness",
+  "surprise",
+  "optimism",
+  "uncertainty",
+] as const;
+
+// ── Fetch latest emotion snapshot per country ──────────────────────────────
+async function getEmotionData(): Promise<CountryEmotion[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("emotion_snapshots")
+      .select(
+        "country_code, joy, trust, fear, anger, sadness, surprise, optimism, uncertainty, timestamp"
+      )
+      .is("sector_slug", null)
+      .not("country_code", "is", null)
+      .order("timestamp", { ascending: false })
+      .limit(1000);
+
+    if (error || !data || data.length === 0) return [];
+
+    // Deduplicate: keep latest snapshot per country
+    const seen = new Set<string>();
+    const result: CountryEmotion[] = [];
+
+    for (const row of data) {
+      if (!row.country_code || seen.has(row.country_code)) continue;
+      seen.add(row.country_code);
+
+      let dominant: Emotion = EMOTIONS[0];
+      let maxScore = -1;
+      for (const emotion of EMOTIONS) {
+        const score = (row[emotion] as number | null) ?? 0;
+        if (score > maxScore) {
+          maxScore = score;
+          dominant = emotion;
+        }
+      }
+
+      result.push({ countryCode: row.country_code, dominant });
+    }
+
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 export default async function Home({
   params,
 }: {
@@ -9,26 +67,7 @@ export default async function Home({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <HomeContent />;
-}
+  const emotionData = await getEmotionData();
 
-function HomeContent() {
-  const t = useTranslations("Home");
-
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6">
-      <div className="glass rounded-xl px-8 py-10 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--wem-text)]">
-          {t("title")}
-        </h1>
-        <p className="mt-2 text-sm text-[var(--wem-text-secondary)]">
-          {t("tagline")}
-        </p>
-        <div className="mt-6 h-px w-24 mx-auto bg-[var(--wem-border)]" />
-        <p className="mt-6 text-xs text-[var(--wem-text-muted)]">
-          {t("comingSoon")}
-        </p>
-      </div>
-    </div>
-  );
+  return <MapSection data={emotionData} />;
 }
