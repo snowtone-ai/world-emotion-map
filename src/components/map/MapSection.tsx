@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { computeColorMap } from "@/lib/emotions";
 import type { ColorMode, CountryEmotionRaw } from "@/lib/emotions";
 import { EmotionLegend } from "./EmotionLegend";
+import { CountryDetailPanel } from "./CountryDetailPanel";
 
 const WorldMap = dynamic(() => import("./WorldMap"), {
   ssr: false,
@@ -37,16 +38,37 @@ export function MapSection({ data }: { data: CountryEmotionRaw[] }) {
     [data, colorMode]
   );
 
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
   function handleModeChange(mode: ColorMode) {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.set("mode", String(mode));
     router.replace(`?${params.toString()}`, { scroll: false });
   }
 
+  function handleCountrySelect(code: string) {
+    // Toggle: clicking the same country again closes the panel
+    setSelectedCountry((prev) => (prev === code ? null : code));
+  }
+
   return (
-    <div className="relative flex-1 flex flex-col">
-      <WorldMap colorMap={colorMap} />
-      <EmotionLegend colorMode={colorMode} onModeChange={handleModeChange} />
+    <div className="relative flex-1 flex flex-row">
+      <div className="relative flex-1 flex flex-col">
+        <WorldMap
+          colorMap={colorMap}
+          onCountrySelect={handleCountrySelect}
+          selectedCountry={selectedCountry}
+        />
+        <EmotionLegend colorMode={colorMode} onModeChange={handleModeChange} />
+      </div>
+      {selectedCountry && (
+        <CountryDetailPanel
+          key={selectedCountry}
+          countryCode={selectedCountry}
+          allData={data}
+          onClose={() => setSelectedCountry(null)}
+        />
+      )}
     </div>
   );
 }

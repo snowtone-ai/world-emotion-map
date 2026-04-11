@@ -12,6 +12,8 @@ const COUNTRY_OUTLINE_COLOR = "#334155";
 type Props = {
   /** country code (ISO alpha-2) → fill color hex */
   colorMap: Record<string, string>;
+  onCountrySelect: (countryCode: string) => void;
+  selectedCountry: string | null;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -31,9 +33,14 @@ function buildFillColor(
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function WorldMap({ colorMap }: Props) {
+export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  // Hold latest callback in a ref to avoid stale closures inside Mapbox event handlers
+  const onCountrySelectRef = useRef(onCountrySelect);
+  useEffect(() => {
+    onCountrySelectRef.current = onCountrySelect;
+  }, [onCountrySelect]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -107,6 +114,38 @@ export default function WorldMap({ colorMap }: Props) {
         },
         "country-label"
       );
+
+      map.addLayer(
+        {
+          id: "country-highlight",
+          type: "line",
+          source: "country-boundaries",
+          "source-layer": "country_boundaries",
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": 2,
+            "line-blur": 4,
+            "line-opacity": 0,
+          },
+        } as mapboxgl.LayerSpecification,
+        "country-label"
+      );
+
+      // Click: select country
+      map.on("click", "country-fill", (e) => {
+        const code = e.features?.[0]?.properties?.[
+          "iso_3166_1_alpha_2"
+        ] as string | undefined;
+        if (code) onCountrySelectRef.current(code);
+      });
+
+      // Cursor affordance
+      map.on("mouseenter", "country-fill", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "country-fill", () => {
+        map.getCanvas().style.cursor = "";
+      });
     });
 
     return () => {
@@ -114,6 +153,19 @@ export default function WorldMap({ colorMap }: Props) {
       mapRef.current = null;
     };
   }, [colorMap]);
+
+  // Separate effect: update highlight layer when selectedCountry changes
+  // (kept separate from colorMap effect to avoid full map re-initialization)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.getLayer("country-highlight")) return;
+    map.setPaintProperty("country-highlight", "line-opacity", [
+      "case",
+      ["==", ["get", "iso_3166_1_alpha_2"], selectedCountry ?? ""],
+      0.85,
+      0,
+    ]);
+  }, [selectedCountry]);
 
   if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
     return (
