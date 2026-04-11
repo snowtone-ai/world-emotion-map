@@ -10,7 +10,9 @@
   "Header": {
     "region": "地域",
     "sector": "セクター",
-    "signIn": "ログイン"
+    "signIn": "ログイン",
+    "favorites": "お気に入り",
+    "signOut": "ログアウト"
   },
   "Footer": {
     "about": "About",

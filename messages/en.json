@@ -10,7 +10,9 @@
   "Header": {
     "region": "Region",
     "sector": "Sector",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "favorites": "Favorites",
+    "signOut": "Sign out"
   },
   "Footer": {
     "about": "About",
