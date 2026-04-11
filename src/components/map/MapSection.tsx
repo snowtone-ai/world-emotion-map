@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { CountryEmotion } from "./WorldMap";
+import { EmotionLegend } from "./EmotionLegend";
 
 const WorldMap = dynamic(() => import("./WorldMap"), {
   ssr: false,
@@ -15,5 +16,10 @@ const WorldMap = dynamic(() => import("./WorldMap"), {
 });
 
 export function MapSection({ data }: { data: CountryEmotion[] }) {
-  return <WorldMap data={data} />;
+  return (
+    <div className="relative flex-1 flex flex-col">
+      <WorldMap data={data} />
+      <EmotionLegend />
+    </div>
+  );
 }
