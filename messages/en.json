@@ -14,6 +14,22 @@
     "favorites": "Favorites",
     "signOut": "Sign out"
   },
+  "About": {
+    "label": "About",
+    "description": "World Emotion Map visualizes the emotional pulse of global news in real time. Each country is colored by the dominant emotion reported in news media — Joy, Fear, Anger, Sadness, Trust, or Optimism — giving you an instant gestalt of how the world feels right now.",
+    "howItWorksTitle": "How It Works",
+    "step1": "GDELT GKG processes 100,000+ global news articles per day and extracts emotion signals using natural language processing.",
+    "step2": "We aggregate those signals by country and sector, updated hourly, into our emotion database.",
+    "step3": "The interactive map renders the dominant emotion for each country as a color, updated every hour.",
+    "dataSourceTitle": "Data Source",
+    "dataSourceBody": "Emotion data is sourced from the GDELT Global Knowledge Graph (GKG), a real-time open dataset that monitors the world's news media in 65 languages across 195 countries.",
+    "dataDisclaimer": "Note: this data reflects news media sentiment, not the actual emotional state of any population. It should not be used as the basis for financial or political decisions.",
+    "subscribeTitle": "Stay Updated",
+    "subscribeBody": "Get notified when we launch new features and emotion insights. No spam — we'll email you only for major updates.",
+    "emailPlaceholder": "your@email.com",
+    "subscribeButton": "Subscribe",
+    "subscribeSuccess": "Thank you! You're on the list."
+  },
   "Favorites": {
     "title": "Favorites",
     "saved": "Saved",
