@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { computeColorMap } from "@/lib/emotions";
 import type { ColorMode, CountryEmotionRaw } from "@/lib/emotions";
 import { EmotionLegend } from "./EmotionLegend";
@@ -25,9 +25,33 @@ function parseMode(raw: string | null | undefined): ColorMode {
   return 4; // default
 }
 
-export function MapSection({ data, userId }: { data: CountryEmotionRaw[]; userId: string | null }) {
+export function MapSection({ data: serverData, userId }: { data: CountryEmotionRaw[]; userId: string | null }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Client-side fallback: if server provided no data, fetch from API route
+  const [clientData, setClientData] = useState<CountryEmotionRaw[] | null>(null);
+
+  useEffect(() => {
+    if (serverData.length > 0) return; // Server data is fine, no fallback needed
+
+    let cancelled = false;
+    fetch("/api/emotions")
+      .then((res) => res.json())
+      .then((json: { data?: CountryEmotionRaw[] }) => {
+        if (!cancelled && json.data && json.data.length > 0) {
+          setClientData(json.data);
+        }
+      })
+      .catch((err) => console.error("[MapSection] Fallback fetch failed:", err));
+
+    return () => { cancelled = true; };
+  }, [serverData]);
+
+  const data = useMemo(
+    () => (serverData.length > 0 ? serverData : (clientData ?? [])),
+    [serverData, clientData]
+  );
 
   // Derive colorMode directly from URL — no useState needed.
   // URL is the single source of truth; router.replace triggers re-render automatically.
