@@ -61,6 +61,16 @@ export function MapSection({ data, userId }: { data: CountryEmotionRaw[]; userId
         />
         <EmotionLegend colorMode={colorMode} onModeChange={handleModeChange} />
       </div>
+
+      {/* Mobile backdrop — tap outside to close */}
+      {selectedCountry && (
+        <div
+          className="fixed inset-0 z-20 sm:hidden"
+          onClick={() => setSelectedCountry(null)}
+          aria-hidden="true"
+        />
+      )}
+
       {selectedCountry && (
         <CountryDetailPanel
           key={selectedCountry}

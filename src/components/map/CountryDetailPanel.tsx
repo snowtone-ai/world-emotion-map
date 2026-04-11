@@ -165,12 +165,24 @@ export function CountryDetailPanel({ countryCode, allData, userId, onClose }: Pr
     <aside
       role="complementary"
       aria-label={`Emotion details for ${countryName}`}
-      className="animate-slide-in-right w-[360px] lg:w-[400px] h-full glass
-                 border-l border-[var(--wem-glass-border)] flex flex-col
-                 overflow-y-auto z-20 flex-shrink-0"
+      className="
+        animate-slide-in-up
+        fixed inset-x-0 bottom-0 z-30 max-h-[65vh] rounded-t-2xl
+        sm:animate-slide-in-right
+        sm:static sm:inset-auto sm:rounded-none sm:z-20
+        sm:w-[360px] lg:sm:w-[400px] sm:h-full sm:max-h-none sm:flex-shrink-0
+        glass
+        border-t sm:border-t-0 sm:border-l border-[var(--wem-glass-border)]
+        flex flex-col overflow-y-auto
+      "
     >
+      {/* Drag handle — mobile only */}
+      <div className="flex justify-center pt-3 pb-1 flex-shrink-0 sm:hidden">
+        <div className="w-10 h-1 rounded-full bg-white/20" />
+      </div>
+
       {/* Header */}
-      <div className="flex items-start justify-between px-5 pt-5 pb-3 flex-shrink-0">
+      <div className="flex items-start justify-between px-5 pt-3 sm:pt-5 pb-3 flex-shrink-0">
         <div>
           <span className="text-[10px] font-mono tracking-widest uppercase text-[var(--wem-text-muted)]">
             {countryCode}
