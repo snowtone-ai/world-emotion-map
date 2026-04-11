@@ -25,7 +25,7 @@ function buildFillColor(
   if (entries.length === 0) return NO_DATA_COLOR;
   return [
     "match",
-    ["get", "iso_3166_1_alpha_2"],
+    ["get", "iso_3166_1"],
     ...entries.flatMap(([code, color]) => [code, color]),
     NO_DATA_COLOR,
   ] as mapboxgl.ExpressionSpecification;
@@ -72,7 +72,7 @@ export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }:
       "bottom-left"
     );
 
-    map.on("style.load", () => {
+    map.once("load", () => {
       map.setFog({
         color: "rgb(10, 10, 30)",
         "high-color": "rgb(20, 10, 50)",
@@ -86,13 +86,28 @@ export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }:
         url: "mapbox://mapbox.country-boundaries-v1",
       });
 
+      // Invisible hit-test layer — no filter so ALL countries are clickable
+      map.addLayer(
+        {
+          id: "country-hit",
+          type: "fill",
+          source: "country-boundaries",
+          "source-layer": "country_boundaries",
+          paint: {
+            "fill-color": "#000000",
+            "fill-opacity": 0.001,
+          },
+        },
+        "country-label"
+      );
+
       map.addLayer(
         {
           id: "country-fill",
           type: "fill",
           source: "country-boundaries",
           "source-layer": "country_boundaries",
-          filter: ["==", ["get", "disputed"], "false"],
+          filter: ["!=", ["get", "disputed"], "true"],
           paint: {
             "fill-color": buildFillColor(colorMap),
             "fill-opacity": 0.72,
@@ -123,32 +138,39 @@ export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }:
           "source-layer": "country_boundaries",
           paint: {
             "line-color": "#ffffff",
-            "line-width": 2,
-            "line-blur": 4,
+            "line-width": 3,
+            "line-blur": 2,
             "line-opacity": 0,
           },
         } as mapboxgl.LayerSpecification,
         "country-label"
       );
 
-      // Click: use queryRenderedFeatures for robustness
-      // (layer-specific click may miss if the disputed filter eliminates features)
+      // Click handler: 10px bounding box + country-hit layer for reliable globe clicks
       map.on("click", (e) => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ["country-fill"],
+        const bbox: [mapboxgl.PointLike, mapboxgl.PointLike] = [
+          [e.point.x - 5, e.point.y - 5],
+          [e.point.x + 5, e.point.y + 5],
+        ];
+        const features = map.queryRenderedFeatures(bbox, {
+          layers: ["country-hit"],
         });
-        const code = features[0]?.properties?.[
-          "iso_3166_1_alpha_2"
-        ] as string | undefined;
+        const code = features[0]?.properties?.["iso_3166_1"] as
+          | string
+          | undefined;
         if (code) onCountrySelectRef.current(code);
       });
 
-      // Cursor affordance
-      map.on("mouseenter", "country-fill", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "country-fill", () => {
-        map.getCanvas().style.cursor = "";
+      // Cursor handler: 6px bounding box + country-hit layer
+      map.on("mousemove", (e) => {
+        const bbox: [mapboxgl.PointLike, mapboxgl.PointLike] = [
+          [e.point.x - 3, e.point.y - 3],
+          [e.point.x + 3, e.point.y + 3],
+        ];
+        const features = map.queryRenderedFeatures(bbox, {
+          layers: ["country-hit"],
+        });
+        map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
       });
     });
 
@@ -165,7 +187,7 @@ export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }:
     if (!map || !map.getLayer("country-highlight")) return;
     map.setPaintProperty("country-highlight", "line-opacity", [
       "case",
-      ["==", ["get", "iso_3166_1_alpha_2"], selectedCountry ?? ""],
+      ["==", ["get", "iso_3166_1"], selectedCountry ?? ""],
       0.85,
       0,
     ]);
