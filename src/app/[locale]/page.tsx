@@ -63,11 +63,16 @@ export default async function Home({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const emotionData = await getEmotionData();
 
   return (
     <Suspense>
-      <MapSection data={emotionData} />
+      <MapSection data={emotionData} userId={user?.id ?? null} />
     </Suspense>
   );
 }

@@ -14,6 +14,12 @@
     "favorites": "Favorites",
     "signOut": "Sign out"
   },
+  "Favorites": {
+    "title": "Favorites",
+    "saved": "Saved",
+    "empty": "No favorites yet.",
+    "emptyHint": "Click ☆ on any country panel to save it here."
+  },
   "Footer": {
     "about": "About",
     "privacy": "Privacy Policy",

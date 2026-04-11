@@ -25,7 +25,7 @@ function parseMode(raw: string | null | undefined): ColorMode {
   return 4; // default
 }
 
-export function MapSection({ data }: { data: CountryEmotionRaw[] }) {
+export function MapSection({ data, userId }: { data: CountryEmotionRaw[]; userId: string | null }) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -66,6 +66,7 @@ export function MapSection({ data }: { data: CountryEmotionRaw[] }) {
           key={selectedCountry}
           countryCode={selectedCountry}
           allData={data}
+          userId={userId}
           onClose={() => setSelectedCountry(null)}
         />
       )}

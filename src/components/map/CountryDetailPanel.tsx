@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import type { CountryEmotionRaw, Emotion } from "@/lib/emotions";
 import { useTrend } from "@/hooks/useTrend";
+import { useFavorite } from "@/hooks/useFavorite";
 import { EmotionBarChart } from "./EmotionBarChart";
 import { TrendSparkline } from "./TrendSparkline";
+import { createClient } from "@/lib/supabase/client";
 
 type Props = {
   countryCode: string;
   allData: CountryEmotionRaw[];
+  userId: string | null;
   onClose: () => void;
 };
 
@@ -57,7 +60,77 @@ function NewsList({ urls }: { urls: string[] }) {
   );
 }
 
-export function CountryDetailPanel({ countryCode, allData, onClose }: Props) {
+function FavoriteButton({
+  countryCode,
+  userId,
+}: {
+  countryCode: string;
+  userId: string | null;
+}) {
+  const { isFavorite, toggle, loading } = useFavorite(countryCode, userId);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  function handleClick() {
+    if (!userId) {
+      setShowPrompt((prev) => !prev);
+      return;
+    }
+    toggle();
+  }
+
+  function handleSignIn() {
+    const supabase = createClient();
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        className={`mt-1 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
+                   transition-colors text-base
+                   ${isFavorite
+                     ? "text-amber-400 hover:text-amber-300"
+                     : "text-[var(--wem-text-muted)] hover:text-amber-400"
+                   }
+                   hover:bg-white/10`}
+      >
+        {isFavorite ? "★" : "☆"}
+      </button>
+
+      {showPrompt && (
+        <>
+          {/* backdrop to close */}
+          <div
+            className="fixed inset-0 z-20"
+            onClick={() => setShowPrompt(false)}
+          />
+          <div className="absolute right-0 top-9 w-48 glass rounded-lg shadow-xl p-3 z-30 border border-[var(--wem-glass-border)]">
+            <p className="text-xs text-[var(--wem-text-secondary)] mb-2.5 leading-snug">
+              Sign in to save favorites
+            </p>
+            <button
+              onClick={handleSignIn}
+              className="w-full text-xs px-3 py-1.5 rounded-md border border-[var(--wem-border)]
+                         text-[var(--wem-text-secondary)] hover:text-[var(--wem-text)]
+                         hover:border-[var(--wem-accent)] transition-colors text-center"
+            >
+              Sign in with Google
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function CountryDetailPanel({ countryCode, allData, userId, onClose }: Props) {
   const countryName = useMemo(() => {
     try {
       return (
@@ -106,15 +179,18 @@ export function CountryDetailPanel({ countryCode, allData, onClose }: Props) {
             {countryName}
           </h2>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Close panel"
-          className="mt-1 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
-                     text-[var(--wem-text-muted)] hover:text-[var(--wem-text)]
-                     hover:bg-white/10 transition-colors text-sm"
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-1 mt-1">
+          <FavoriteButton countryCode={countryCode} userId={userId} />
+          <button
+            onClick={onClose}
+            aria-label="Close panel"
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
+                       text-[var(--wem-text-muted)] hover:text-[var(--wem-text)]
+                       hover:bg-white/10 transition-colors text-sm"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <div className="px-5 flex flex-col gap-6 pb-8">

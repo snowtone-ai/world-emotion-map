@@ -14,6 +14,12 @@
     "favorites": "お気に入り",
     "signOut": "ログアウト"
   },
+  "Favorites": {
+    "title": "お気に入り",
+    "saved": "保存済み",
+    "empty": "お気に入りはまだありません。",
+    "emptyHint": "国パネルの ☆ をクリックして保存できます。"
+  },
   "Footer": {
     "about": "About",
     "privacy": "プライバシーポリシー",
