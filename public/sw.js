@@ -1,12 +1,12 @@
 /**
  * World Emotion Map — Service Worker
  * Strategy:
- *   - App shell (HTML/JS/CSS): Cache-first, fallback to network
+ *   - App shell (HTML/JS/CSS): Network-first, fallback to cache
  *   - Emotion API (/api/emotions/*): Network-first, fallback to cache
  *   - Everything else: Network-only (map tiles, external CDN)
  */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const SHELL_CACHE = `wem-shell-${CACHE_VERSION}`;
 const DATA_CACHE = `wem-data-${CACHE_VERSION}`;
 
@@ -62,7 +62,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App shell: cache-first, fallback to network, fallback to offline page
+  // App shell: network-first, fallback to cache, fallback to offline page
+  // Network-first ensures new Vercel deployments (with new JS chunk hashes)
+  // are always picked up immediately. Cache is only used when offline.
   if (
     request.mode === "navigate" ||
     request.destination === "script" ||
@@ -70,21 +72,24 @@ self.addEventListener("fetch", (event) => {
     request.destination === "font"
   ) {
     event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request)
-            .then((response) => {
-              if (response.ok && request.mode === "navigate") {
-                const clone = response.clone();
-                caches
-                  .open(SHELL_CACHE)
-                  .then((cache) => cache.put(request, clone));
-              }
-              return response;
-            })
-            .catch(() => caches.match("/offline") || new Response("Offline"))
-      )
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches
+              .open(SHELL_CACHE)
+              .then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches
+            .match(request)
+            .then(
+              (cached) =>
+                cached || caches.match("/offline") || new Response("Offline")
+            )
+        )
     );
   }
 });
