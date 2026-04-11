@@ -26,7 +26,6 @@ export const metadata: Metadata = {
   title: "World Emotion Map — Feel What the World Feels",
   description:
     "Real-time interactive globe visualizing the emotional state of every country, powered by global news sentiment analysis.",
-  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
