@@ -22,10 +22,38 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const WEM_URL = "https://worldemotionmap.com";
+const OG_IMAGE = `${WEM_URL}/api/og`;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(WEM_URL),
   title: "World Emotion Map — Feel What the World Feels",
   description:
     "Real-time interactive globe visualizing the emotional state of every country, powered by global news sentiment analysis.",
+  openGraph: {
+    type: "website",
+    url: WEM_URL,
+    siteName: "World Emotion Map",
+    title: "World Emotion Map — Feel What the World Feels",
+    description:
+      "Real-time interactive globe visualizing the emotional state of every country, powered by global news sentiment analysis.",
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: "World Emotion Map — Feel What the World Feels",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@WorldEmotionMap",
+    title: "World Emotion Map — Feel What the World Feels",
+    description:
+      "Real-time interactive globe visualizing the emotional state of every country, powered by global news sentiment analysis.",
+    images: [OG_IMAGE],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
