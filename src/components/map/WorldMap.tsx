@@ -4,51 +4,34 @@ import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-// ── Emotion colors (matches globals.css --color-emotion-* tokens) ──────────
-const EMOTION_COLORS = {
-  joy: "#FFD166",
-  trust: "#06D6A0",
-  fear: "#A78BFA",
-  anger: "#FF6B6B",
-  sadness: "#4EA8DE",
-  surprise: "#FF9F1C",
-  optimism: "#84CC16",
-  uncertainty: "#94A3B8",
-} as const;
-
 const NO_DATA_COLOR = "#1a1a2e";
 const COUNTRY_OUTLINE_COLOR = "#334155";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-export type Emotion = keyof typeof EMOTION_COLORS;
-
-export type CountryEmotion = {
-  countryCode: string; // ISO 3166-1 alpha-2
-  dominant: Emotion;
-};
 
 type Props = {
-  data: CountryEmotion[];
+  /** country code (ISO alpha-2) → fill color hex */
+  colorMap: Record<string, string>;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
 function buildFillColor(
-  data: CountryEmotion[]
+  colorMap: Record<string, string>
 ): mapboxgl.ExpressionSpecification | string {
-  if (data.length === 0) return NO_DATA_COLOR;
+  const entries = Object.entries(colorMap);
+  if (entries.length === 0) return NO_DATA_COLOR;
   return [
     "match",
     ["get", "iso_3166_1_alpha_2"],
-    ...data.flatMap(({ countryCode, dominant }) => [
-      countryCode,
-      EMOTION_COLORS[dominant],
-    ]),
+    ...entries.flatMap(([code, color]) => [code, color]),
     NO_DATA_COLOR,
   ] as mapboxgl.ExpressionSpecification;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
-export default function WorldMap({ data }: Props) {
+
+export default function WorldMap({ colorMap }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -104,7 +87,7 @@ export default function WorldMap({ data }: Props) {
           "source-layer": "country_boundaries",
           filter: ["==", ["get", "disputed"], "false"],
           paint: {
-            "fill-color": buildFillColor(data),
+            "fill-color": buildFillColor(colorMap),
             "fill-opacity": 0.72,
           },
         },
@@ -130,7 +113,7 @@ export default function WorldMap({ data }: Props) {
       map.remove();
       mapRef.current = null;
     };
-  }, [data]);
+  }, [colorMap]);
 
   if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
     return (

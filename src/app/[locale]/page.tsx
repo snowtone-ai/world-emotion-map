@@ -1,10 +1,10 @@
 import { setRequestLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { MapSection } from "@/components/map/MapSection";
-import type { CountryEmotion, Emotion } from "@/components/map/WorldMap";
+import type { CountryEmotionRaw, Emotion } from "@/lib/emotions";
 
 // ── Emotion keys ───────────────────────────────────────────────────────────
-const EMOTIONS = [
+const EMOTIONS: Emotion[] = [
   "joy",
   "trust",
   "fear",
@@ -13,10 +13,10 @@ const EMOTIONS = [
   "surprise",
   "optimism",
   "uncertainty",
-] as const;
+];
 
 // ── Fetch latest emotion snapshot per country ──────────────────────────────
-async function getEmotionData(): Promise<CountryEmotion[]> {
+async function getEmotionData(): Promise<CountryEmotionRaw[]> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -33,23 +33,18 @@ async function getEmotionData(): Promise<CountryEmotion[]> {
 
     // Deduplicate: keep latest snapshot per country
     const seen = new Set<string>();
-    const result: CountryEmotion[] = [];
+    const result: CountryEmotionRaw[] = [];
 
     for (const row of data) {
       if (!row.country_code || seen.has(row.country_code)) continue;
       seen.add(row.country_code);
 
-      let dominant: Emotion = EMOTIONS[0];
-      let maxScore = -1;
+      const scores = {} as Record<Emotion, number>;
       for (const emotion of EMOTIONS) {
-        const score = (row[emotion] as number | null) ?? 0;
-        if (score > maxScore) {
-          maxScore = score;
-          dominant = emotion;
-        }
+        scores[emotion] = (row[emotion] as number | null) ?? 0;
       }
 
-      result.push({ countryCode: row.country_code, dominant });
+      result.push({ countryCode: row.country_code, scores });
     }
 
     return result;
