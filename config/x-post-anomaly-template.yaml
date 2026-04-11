@@ -1,0 +1,20 @@
+# Anomaly post templates — one per trigger type (T1–T5).
+# The `description` stored in anomaly_posts_log is inserted at {{description}}.
+# Variable: {{description}}, {{wem_url}}
+#
+# Edit this file in the GitHub Web UI to change post wording;
+# the next anomaly detection run will use the updated templates.
+
+prefix:
+  T1: "🚨 BREAKING:"
+  T2: "⚡ FLIP:"
+  T3: "🌍 SYNCHRONIZED:"
+  T4: "📊 SECTOR ALERT:"
+  T5: "📈 RECORD:"
+  default: "⚠️ ALERT:"
+
+# Common suffix appended after every anomaly post.
+suffix: |
+  Track it live → {{wem_url}}
+
+  #WorldEmotionMap #Breaking #GlobalSentiment

@@ -1,0 +1,50 @@
+# Regular 6-hour scheduled post templates.
+# Variables: {{top_emotion}}, {{top_country}}, {{score}}, {{change_summary}},
+#            {{timestamp_utc}}, {{wem_url}}
+# The script round-robins through `texts` based on the current 6h window index.
+
+texts:
+  - |
+    🌍 World Emotion Pulse — {{timestamp_utc}}
+
+    Dominant emotion globally: {{top_emotion}} ({{score}}/100)
+    Leading country: {{top_country}}
+
+    {{change_summary}}
+
+    See the live map → {{wem_url}}
+
+    #WorldEmotionMap #GlobalNews #Sentiment
+
+  - |
+    🌐 What is the world feeling right now?
+
+    {{top_country}} is leading with {{top_emotion}} at {{score}}/100.
+
+    Track real-time emotion shifts across every country:
+    {{wem_url}}
+
+    #WorldEmotionMap #NewsAnalysis #DataViz
+
+  - |
+    📊 6-hour emotion update
+
+    Global {{top_emotion}} at {{score}}/100
+    Hotspot: {{top_country}}
+    {{change_summary}}
+
+    Explore the full map:
+    {{wem_url}}
+
+    #WorldEmotionMap #GDELT #Sentiment
+
+  - |
+    🛰️ Monitoring the world's emotional pulse.
+
+    Right now: {{top_emotion}} dominates ({{score}}/100)
+    Top country signal: {{top_country}}
+
+    Powered by GDELT news analysis.
+    {{wem_url}}
+
+    #WorldEmotionMap #OpenData #GlobalAwareness

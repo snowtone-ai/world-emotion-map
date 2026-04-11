@@ -492,6 +492,7 @@ async function main() {
   const rows = filtered.map((c) => ({
     trigger_id: c.trigger_id,
     country_code: c.country_code,
+    description: c.description,
   }));
 
   const { data: inserted, error: insertError } = await supabase

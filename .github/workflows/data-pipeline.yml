@@ -2,21 +2,34 @@ name: Data Pipeline & Anomaly Detection
 
 on:
   schedule:
-    - cron: "5 * * * *" # Every hour at :05 (buffer for GDELT publish delay)
+    - cron: "5 * * * *"   # Every hour at :05 — data pipeline + anomaly detection
+    - cron: "10 0,6,12,18 * * *"  # UTC 0:10, 6:10, 12:10, 18:10 — X scheduled post
   workflow_dispatch:
     inputs:
       skip_pipeline:
-        description: "Skip fetch+aggregate (run anomaly detection only)"
+        description: "Skip fetch+aggregate (anomaly + X post only)"
         type: boolean
         default: false
       skip_anomaly:
-        description: "Skip anomaly detection (run pipeline only)"
+        description: "Skip anomaly detection"
         type: boolean
         default: false
+      post_mode:
+        description: "X post mode to run manually (scheduled / anomaly / none)"
+        type: choice
+        options:
+          - none
+          - scheduled
+          - anomaly
+        default: none
 
 env:
   NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  X_API_KEY: ${{ secrets.X_API_KEY }}
+  X_API_SECRET: ${{ secrets.X_API_SECRET }}
+  X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+  X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
 
 jobs:
   pipeline:
@@ -34,10 +47,31 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # ── Data pipeline (every hour) ──────────────────────────
       - name: Fetch GDELT & Aggregate
-        if: ${{ inputs.skip_pipeline != true }}
+        # Run on schedule (hourly) or on manual dispatch unless skipped
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '5 * * * *') ||
+          (github.event_name == 'workflow_dispatch' && inputs.skip_pipeline != true)
         run: pnpm tsx scripts/fetch-gdelt.ts | pnpm tsx scripts/aggregate.ts
 
+      # ── Anomaly detection (every hour) ─────────────────────
       - name: Detect Anomalies
-        if: ${{ inputs.skip_anomaly != true }}
-        run: pnpm tsx scripts/detect-anomaly.ts
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '5 * * * *') ||
+          (github.event_name == 'workflow_dispatch' && inputs.skip_anomaly != true)
+        run: pnpm tsx --env-file /dev/null scripts/detect-anomaly.ts
+
+      # ── X: post anomaly if PENDING (every hour, after detection) ──
+      - name: Post Anomaly to X
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '5 * * * *') ||
+          (github.event_name == 'workflow_dispatch' && inputs.post_mode == 'anomaly')
+        run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode anomaly
+
+      # ── X: scheduled 6h post ────────────────────────────────
+      - name: Post Scheduled Update to X
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '10 0,6,12,18 * * *') ||
+          (github.event_name == 'workflow_dispatch' && inputs.post_mode == 'scheduled')
+        run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode scheduled
