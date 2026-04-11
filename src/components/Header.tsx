@@ -43,24 +43,30 @@ export async function Header() {
           aria-hidden="true"
           className="shrink-0"
         >
+          <defs>
+            <linearGradient id="gh-header" x1="14" y1="44" x2="86" y2="71" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#FF4B8B" />
+              <stop offset="100%" stopColor="#FFAB6B" />
+            </linearGradient>
+          </defs>
           <path
             d="M 50 71 C 32 65, 14 55, 14 44 A 18 18 0 0 1 50 44 A 18 18 0 0 1 86 44 C 86 55, 68 65, 50 71 Z"
-            fill="var(--wem-accent)"
+            fill="url(#gh-header)"
           />
           <path
             d="M 22 51 Q 50 61 78 51"
             fill="none"
-            stroke="#F472B6"
-            strokeWidth="2.5"
+            stroke="white"
+            strokeWidth="2"
             strokeLinecap="round"
-            opacity="0.72"
+            opacity="0.55"
           />
           <line
             x1="50" y1="44" x2="50" y2="71"
             stroke="white"
-            strokeWidth="1.8"
+            strokeWidth="1.6"
             strokeLinecap="round"
-            opacity="0.32"
+            opacity="0.35"
           />
         </svg>
         <span className="font-bold text-base text-[var(--wem-accent)] tracking-tight">

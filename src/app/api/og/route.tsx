@@ -105,7 +105,7 @@ export async function GET() {
             width: "100%",
             height: 6,
             background:
-              "linear-gradient(90deg, #7C6EF5 0%, #A78BFA 50%, #4EA8DE 100%)",
+              "linear-gradient(90deg, #FF4B8B 0%, #FF7BAA 50%, #FFAB6B 100%)",
             display: "flex",
           }}
         />
@@ -136,8 +136,8 @@ export async function GET() {
                 width: 80,
                 height: 80,
                 borderRadius: "50%",
-                border: "3px solid #7C6EF5",
-                backgroundColor: "rgba(124, 110, 245, 0.12)",
+                border: "3px solid #FF4B8B",
+                backgroundColor: "rgba(255, 75, 139, 0.12)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -151,24 +151,30 @@ export async function GET() {
                 height="52"
                 style={{ display: "flex" }}
               >
+                <defs>
+                  <linearGradient id="gh-og" x1="14" y1="44" x2="86" y2="71" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#FF4B8B" />
+                    <stop offset="100%" stopColor="#FFAB6B" />
+                  </linearGradient>
+                </defs>
                 <path
                   d="M 50 71 C 32 65, 14 55, 14 44 A 18 18 0 0 1 50 44 A 18 18 0 0 1 86 44 C 86 55, 68 65, 50 71 Z"
-                  fill="#7C6EF5"
+                  fill="url(#gh-og)"
                 />
                 <path
                   d="M 22 51 Q 50 61 78 51"
                   fill="none"
-                  stroke="#F472B6"
-                  strokeWidth="2.5"
+                  stroke="white"
+                  strokeWidth="2"
                   strokeLinecap="round"
-                  opacity="0.72"
+                  opacity="0.55"
                 />
                 <line
                   x1="50" y1="44" x2="50" y2="71"
                   stroke="white"
-                  strokeWidth="1.8"
+                  strokeWidth="1.6"
                   strokeLinecap="round"
-                  opacity="0.32"
+                  opacity="0.35"
                 />
               </svg>
             </div>
@@ -374,7 +380,7 @@ export async function GET() {
           <div
             style={{
               fontSize: 16,
-              color: "#7C6EF5",
+              color: "#FF4B8B",
               display: "flex",
             }}
           >
