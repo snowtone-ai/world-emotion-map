@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { setRequestLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { MapSection } from "@/components/map/MapSection";
@@ -64,5 +65,9 @@ export default async function Home({
 
   const emotionData = await getEmotionData();
 
-  return <MapSection data={emotionData} />;
+  return (
+    <Suspense>
+      <MapSection data={emotionData} />
+    </Suspense>
+  );
 }
