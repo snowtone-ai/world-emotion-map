@@ -12,20 +12,21 @@
  *
  * 環境変数: 不要（GCP/BigQuery 不要）
  *
- * GCAM 感情次元 (NRC Word-Emotion Association Lexicon, dictionary c7):
- *   c7.1  anger        c7.5  joy       c7.9  surprise
- *   c7.2  anticipation c7.6  negative  c7.10 trust
- *   c7.3  disgust      c7.7  positive
- *   c7.4  fear         c7.8  sadness
+ * GCAM 感情次元 (NRC Word-Emotion Association Lexicon, dictionary c14):
+ *   実測値: c14.1〜c14.10 が8感情+正負の10次元、c14.11 は未定義の追加次元
+ *   c14.1  anger        c14.5  joy       c14.9  surprise
+ *   c14.2  anticipation c14.6  negative  c14.10 trust
+ *   c14.3  disgust      c14.7  positive
+ *   c14.4  fear         c14.8  sadness
  *
  * WEM 感情 → GCAM マッピング（Task 4 で使用）:
- *   joy        → c7.5
- *   trust      → c7.10
- *   fear       → c7.4
- *   anger      → c7.1
- *   sadness    → c7.8
- *   surprise   → c7.9
- *   optimism   → c7.2 (anticipation)
+ *   joy        → c14.5
+ *   trust      → c14.10
+ *   fear       → c14.4
+ *   anger      → c14.1
+ *   sadness    → c14.8
+ *   surprise   → c14.9
+ *   optimism   → c14.2 (anticipation)
  *   uncertainty → Task 4 で導出 (low trust + high fear のプロキシ)
  */
 
@@ -158,22 +159,24 @@ function parseGcam(raw: string): GcamScores {
     };
   }
   const extract = (id: string): number | null => {
-    const m = new RegExp(`(?:^|;)${id}:([\\d.]+)`).exec(raw);
+    // GCAM フィールドのセパレータはカンマ (wc:N,c1.2:N,c7.1:N,...)
+    const m = new RegExp(`(?:^|,)${id}:([\\d.]+)`).exec(raw);
     return m ? parseFloat(m[1]!) : null;
   };
-  const wcMatch = /(?:^|;)wc:(\d+)/.exec(raw);
+  const wcMatch = /(?:^|,)wc:(\d+)/.exec(raw);
   return {
     wordCount: wcMatch ? parseInt(wcMatch[1]!, 10) : 0,
-    anger: extract("c7\\.1"),
-    anticipation: extract("c7\\.2"),
-    disgust: extract("c7\\.3"),
-    fear: extract("c7\\.4"),
-    joy: extract("c7\\.5"),
-    negative: extract("c7\\.6"),
-    positive: extract("c7\\.7"),
-    sadness: extract("c7\\.8"),
-    surprise: extract("c7\\.9"),
-    trust: extract("c7\\.10"),
+    // c14 = NRC Word-Emotion Association Lexicon (実測値で確認済み)
+    anger: extract("c14\\.1"),
+    anticipation: extract("c14\\.2"),
+    disgust: extract("c14\\.3"),
+    fear: extract("c14\\.4"),
+    joy: extract("c14\\.5"),
+    negative: extract("c14\\.6"),
+    positive: extract("c14\\.7"),
+    sadness: extract("c14\\.8"),
+    surprise: extract("c14\\.9"),
+    trust: extract("c14\\.10"),
   };
 }
 
