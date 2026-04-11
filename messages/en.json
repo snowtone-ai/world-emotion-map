@@ -1,10 +1,23 @@
 {
   "Home": {
     "title": "World Emotion Map",
-    "tagline": "Feel What the World Feels",
+    "tagline": "Feel the World's Emotions",
     "comingSoon": "Globe coming soon"
   },
   "LocaleSwitcher": {
     "switchTo": "日本語"
+  },
+  "Header": {
+    "region": "Region",
+    "sector": "Sector",
+    "signIn": "Sign in"
+  },
+  "Footer": {
+    "about": "About",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "subscribe": "Subscribe",
+    "dataSource": "Data: GDELT GKG",
+    "copyright": "© 2025 World Emotion Map"
   }
 }

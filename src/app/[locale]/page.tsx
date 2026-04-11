@@ -1,6 +1,5 @@
 import { useTranslations } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
-import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 
 export default async function Home({
   params,
@@ -29,9 +28,6 @@ function HomeContent() {
         <p className="mt-6 text-xs text-[var(--wem-text-muted)]">
           {t("comingSoon")}
         </p>
-        <div className="mt-4">
-          <LocaleSwitcher />
-        </div>
       </div>
     </div>
   );
