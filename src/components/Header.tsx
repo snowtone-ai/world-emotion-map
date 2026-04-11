@@ -35,23 +35,32 @@ export async function Header() {
     <header className="glass-light border-b border-[var(--wem-border)] px-4 h-14 flex items-center justify-between shrink-0 z-10">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        {/* Globe + heart logomark */}
+        {/* GeoHeart logomark — world expressed as emotion (scaled to 28px) */}
         <svg
-          viewBox="0 0 24 24"
-          width="26"
-          height="26"
-          fill="none"
+          viewBox="0 0 100 100"
+          width="28"
+          height="28"
           aria-hidden="true"
           className="shrink-0"
         >
-          <circle cx="12" cy="12" r="9" stroke="var(--wem-accent)" strokeWidth="1.5" />
-          <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="var(--wem-accent)" strokeWidth="1" opacity="0.5" />
-          <line x1="3" y1="12" x2="21" y2="12" stroke="var(--wem-accent)" strokeWidth="1" opacity="0.5" />
-          {/* Heart */}
           <path
-            d="M 12 16.5 C 8 14 6.5 11.5 6.5 9.5 A 3 3 0 0 1 12 9.5 A 3 3 0 0 1 17.5 9.5 C 17.5 11.5 16 14 12 16.5 Z"
-            fill="#F472B6"
-            opacity="0.9"
+            d="M 50 71 C 32 65, 14 55, 14 44 A 18 18 0 0 1 50 44 A 18 18 0 0 1 86 44 C 86 55, 68 65, 50 71 Z"
+            fill="var(--wem-accent)"
+          />
+          <path
+            d="M 22 51 Q 50 61 78 51"
+            fill="none"
+            stroke="#F472B6"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            opacity="0.72"
+          />
+          <line
+            x1="50" y1="44" x2="50" y2="71"
+            stroke="white"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            opacity="0.32"
           />
         </svg>
         <span className="font-bold text-base text-[var(--wem-accent)] tracking-tight">

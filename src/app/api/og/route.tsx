@@ -144,55 +144,31 @@ export async function GET() {
                 marginBottom: 28,
               }}
             >
-              {/* Globe + heart logomark */}
+              {/* GeoHeart — world expressed as emotion */}
               <svg
-                viewBox="0 0 40 40"
-                width="44"
-                height="44"
+                viewBox="0 0 100 100"
+                width="52"
+                height="52"
                 style={{ display: "flex" }}
               >
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="14"
-                  fill="none"
-                  stroke="#7C6EF5"
-                  strokeWidth="1.5"
+                <path
+                  d="M 50 71 C 32 65, 14 55, 14 44 A 18 18 0 0 1 50 44 A 18 18 0 0 1 86 44 C 86 55, 68 65, 50 71 Z"
+                  fill="#7C6EF5"
                 />
-                <ellipse
-                  cx="20"
-                  cy="20"
-                  rx="14"
-                  ry="6"
+                <path
+                  d="M 22 51 Q 50 61 78 51"
                   fill="none"
-                  stroke="#7C6EF5"
-                  strokeWidth="1"
-                  opacity="0.5"
+                  stroke="#F472B6"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  opacity="0.72"
                 />
                 <line
-                  x1="6"
-                  y1="20"
-                  x2="34"
-                  y2="20"
-                  stroke="#7C6EF5"
-                  strokeWidth="1"
-                  opacity="0.5"
-                />
-                <ellipse
-                  cx="20"
-                  cy="20"
-                  rx="6"
-                  ry="14"
-                  fill="none"
-                  stroke="#7C6EF5"
-                  strokeWidth="1"
-                  opacity="0.4"
-                />
-                {/* Heart — symbolises "feeling what the world feels" */}
-                <path
-                  d="M 20 25 C 14 21 12 18 12 15.5 A 4 4 0 0 1 20 15.5 A 4 4 0 0 1 28 15.5 C 28 18 26 21 20 25 Z"
-                  fill="#F472B6"
-                  opacity="0.88"
+                  x1="50" y1="44" x2="50" y2="71"
+                  stroke="white"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  opacity="0.32"
                 />
               </svg>
             </div>
