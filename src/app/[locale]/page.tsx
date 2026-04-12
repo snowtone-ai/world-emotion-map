@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { MapSection } from "@/components/map/MapSection";
 import type { CountryEmotionRaw, Emotion } from "@/lib/emotions";
+import { normalizeCountryCode } from "@/lib/fips-to-iso";
 
 // ── Emotion keys ───────────────────────────────────────────────────────────
 const EMOTIONS: Emotion[] = [
@@ -67,15 +68,17 @@ async function getEmotionData(): Promise<CountryEmotionRaw[]> {
     const result: CountryEmotionRaw[] = [];
 
     for (const row of data) {
-      if (!row.country_code || seen.has(row.country_code)) continue;
-      seen.add(row.country_code);
+      if (!row.country_code) continue;
+      const isoCode = normalizeCountryCode(row.country_code);
+      if (seen.has(isoCode)) continue;
+      seen.add(isoCode);
 
       const scores = {} as Record<Emotion, number>;
       for (const emotion of EMOTIONS) {
         scores[emotion] = (row[emotion] as number | null) ?? 0;
       }
 
-      result.push({ countryCode: row.country_code, scores });
+      result.push({ countryCode: isoCode, scores });
     }
 
     console.info(`[getEmotionData] Deduplicated to ${result.length} countries`);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { CountryEmotionRaw, Emotion } from "@/lib/emotions";
+import { normalizeCountryCode } from "@/lib/fips-to-iso";
 
 const EMOTIONS: Emotion[] = [
   "joy", "trust", "fear", "anger", "sadness", "surprise", "optimism", "uncertainty",
@@ -76,8 +77,10 @@ export async function GET() {
     const result: CountryEmotionRaw[] = [];
 
     for (const row of data) {
-      const code = row.country_code as string | null;
-      if (!code || seen.has(code)) continue;
+      const rawCode = row.country_code as string | null;
+      if (!rawCode) continue;
+      const code = normalizeCountryCode(rawCode);
+      if (seen.has(code)) continue;
       seen.add(code);
 
       const scores = {} as Record<Emotion, number>;
