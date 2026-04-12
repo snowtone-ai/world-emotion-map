@@ -14,6 +14,13 @@ type Props = {
   colorMap: Record<string, string>;
   onCountrySelect: (countryCode: string) => void;
   selectedCountry: string | null;
+  /** optional runtime probe — called once with a sample country feature's full properties */
+  onDebugProbe?: (info: {
+    featureCount: number;
+    sampleProperties: Record<string, unknown> | null;
+    matchedCodes: string[];
+    unmatchedCodes: string[];
+  }) => void;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -33,7 +40,12 @@ function buildFillColor(
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }: Props) {
+export default function WorldMap({ colorMap, onCountrySelect, selectedCountry, onDebugProbe }: Props) {
+  const onDebugProbeRef = useRef(onDebugProbe);
+  useEffect(() => {
+    onDebugProbeRef.current = onDebugProbe;
+  }, [onDebugProbe]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   // Hold latest callback in a ref to avoid stale closures inside Mapbox event handlers
@@ -145,6 +157,59 @@ export default function WorldMap({ colorMap, onCountrySelect, selectedCountry }:
         } as mapboxgl.LayerSpecification,
         "country-label"
       );
+
+      // Runtime probe: once the vector source has rendered, log what Mapbox
+      // actually sees for country features and compare against our colorMap.
+      // This is the definitive check that no amount of static code review can replace.
+      const runProbe = () => {
+        try {
+          const features = map.queryRenderedFeatures({
+            layers: ["country-fill"],
+          });
+          if (features.length === 0) return false;
+
+          const sampleProperties = (features[0]?.properties ?? null) as
+            | Record<string, unknown>
+            | null;
+
+          // Collect unique iso_3166_1 values Mapbox is actually handing us
+          const mapboxCodes = new Set<string>();
+          for (const f of features) {
+            const code = f.properties?.["iso_3166_1"];
+            if (typeof code === "string") mapboxCodes.add(code);
+          }
+
+          const colorMapCodes = Object.keys(colorMap);
+          const matched = colorMapCodes.filter((c) => mapboxCodes.has(c));
+          const unmatched = colorMapCodes.filter((c) => !mapboxCodes.has(c));
+
+          console.log("[WorldMap debug]", {
+            renderedFeatureCount: features.length,
+            uniqueMapboxCountryCount: mapboxCodes.size,
+            sampleProperties,
+            colorMapSize: colorMapCodes.length,
+            matchedCount: matched.length,
+            unmatchedSample: unmatched.slice(0, 10),
+            mapboxCodesSample: Array.from(mapboxCodes).slice(0, 10),
+          });
+
+          onDebugProbeRef.current?.({
+            featureCount: features.length,
+            sampleProperties,
+            matchedCodes: matched,
+            unmatchedCodes: unmatched,
+          });
+          return true;
+        } catch (err) {
+          console.error("[WorldMap debug] probe failed", err);
+          return false;
+        }
+      };
+
+      // queryRenderedFeatures returns [] until tiles are loaded; retry on idle.
+      if (!runProbe()) {
+        map.once("idle", runProbe);
+      }
 
       // Click handler: 10px bounding box + country-hit layer for reliable globe clicks
       map.on("click", (e) => {
