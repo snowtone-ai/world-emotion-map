@@ -58,7 +58,7 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-const WEM_URL = "https://worldemotionmap.com";
+const WEM_URL = process.env.WEM_BASE_URL ?? "https://worldemomap.com";
 
 const xClient = new TwitterApi({
   appKey: process.env.X_API_KEY!,
