@@ -68,5 +68,12 @@ Supabase (Auth + PostgreSQL) / Mapbox GL JS / Google BigQuery / X API v2 / GitHu
 - UI検証時 → playwright-slim（73%スキーマ削減）を使い、1回の検証は10ステップ以内に制限する。検証結果からPlaywrightテストファイルを生成し、以降はHooksで自動実行する
 - 確定的に強制するルール（prettier/build/lint/type-check）→ Hooksに配置する。CLAUDE.mdからは除外し、判断を伴うルールのみCLAUDE.mdに残す
 
+## Progress State Verification（進捗状態検証 — 致命的教訓より）
+- タスクを「未実装」「未完了」と判断する前に → 必ず関連ファイルをread/grepして実コードの存在を確認する。タスクリスト（vision.md, progress.md等）の記述だけを信頼してはならない
+- タスクリストと実コードが矛盾した場合 → 実コードを正（Single Source of Truth）とする
+- ユーザーに「〇〇を作成してください」と指示する前に → 過去の会話・メモリ・実コードを確認し、既に作成済みでないかを検証する
+- 会話の圧縮（/compact）後の初動 → 着手前に、現在作業中のタスクに関連するファイルを最低3つ読み、実装状態を確認してから行動を開始する
+- 根本原則: 「計画ドキュメントは意図を記録する。実装状態はコードだけが真実。」
+
 ## Self-improvement
 - 間違えた時 → このファイルにルールを追加して再発防止する（最終行に記載）
