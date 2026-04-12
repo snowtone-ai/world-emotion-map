@@ -1,152 +1,152 @@
 # World Emotion Map (WEM)
 
-**Live → [worldemomap.com](https://worldemomap.com)**
+**公開中 → [worldemomap.com](https://worldemomap.com)**
 
-An interactive world map that visualizes the emotional state of each country in real time, derived from global news media analysis.
-
----
-
-## What It Does
-
-WEM answers the question: *"What is the world feeling right now?"*
-
-Every hour, a data pipeline fetches articles from the [GDELT Global Knowledge Graph](https://www.gdeltproject.org/) via Google BigQuery, aggregates sentiment scores by country, and stores the results in Supabase. The frontend renders those scores as a color-coded Mapbox globe — Joy, Trust, Fear, Anger, Sadness, Surprise — updated automatically without a page reload.
-
-Clicking a country opens a detail panel showing a real-time emotion breakdown, a 24-hour trend sparkline, and the source news articles that drove the scores.
+世界中のニュースメディアから感情シグナルをリアルタイムで収集・分析し、国別の「感情の今」をインタラクティブな地球儀上に可視化するWebアプリケーション。
 
 ---
 
-## Architecture
+## プロダクト概要
+
+WEMが答える問いは「*いま、世界は何を感じているか？*」です。
+
+1時間ごとに自動パイプラインが [GDELT Global Knowledge Graph](https://www.gdeltproject.org/) のニュース記事データをGoogle BigQueryで集計し、国別の感情スコア（Joy / Trust / Fear / Anger / Sadness / Surprise）をSupabaseに保存します。フロントエンドはそのスコアをMapbox GL JSのWebGLグローブ上に色分け表示し、ページリロードなしで自動更新されます。
+
+国をクリックするとサイドパネルが開き、感情スコアの内訳・過去24時間のトレンド・スコアの根拠となったニュース記事が確認できます。
+
+---
+
+## アーキテクチャ
 
 ```
-GDELT GKG (news corpus)
+GDELT GKG（ニュースコーパス）
         │
-        ▼ every hour (GitHub Actions cron)
-Google BigQuery ──► aggregate.ts ──► Supabase (PostgreSQL)
+        ▼ 毎時実行（GitHub Actions cron）
+Google BigQuery ──► aggregate.ts ──► Supabase（PostgreSQL）
                                           │
                                           ▼
-                          Next.js 16 App Router (Vercel)
+                          Next.js 16 App Router（Vercel）
                                           │
                          ┌────────────────┴──────────────────┐
                          ▼                                   ▼
                Server Components                     API Routes
-               (initial render)              (/api/emotions, /api/og)
+               （初期レンダリング）           （/api/emotions, /api/og）
                          │                                   │
                          └────────────────┬──────────────────┘
                                           ▼
-                              Mapbox GL JS (WebGL globe)
-                              Country Detail Panel
-                              Sector View
+                              Mapbox GL JS（WebGLグローブ）
+                              国詳細パネル
+                              セクタービュー
 ```
 
-Key design choices:
-- **Server Components by default** — data is fetched and rendered on the server; "use client" is pushed to leaf components only
-- **BigQuery partition filters** on every query to stay within the 1 TB/month free tier
-- **FIPS-10-4 → ISO 3166-1 conversion** (70+ mappings) because GDELT uses FIPS codes while Mapbox uses ISO
-- **Anomaly detection** runs hourly alongside the pipeline, triggering an immediate X post when a country's emotion score deviates significantly from its 7-day baseline
+**主な設計上の判断：**
+- **Server Components をデフォルト採用** — データ取得とレンダリングをサーバーで完結させ、"use client" は末端コンポーネントのみに限定
+- **BigQuery パーティションフィルタを全クエリに強制** — 無料枠（1TB/月）超過を防ぐコスト管理
+- **FIPS-10-4 → ISO 3166-1 変換**（70件以上のマッピング）— GDELTはFIPSコード、MapboxはISO形式のため独自変換レイヤーを実装
+- **異常検知（z-score）** がパイプラインと並列で毎時実行され、7日間ベースラインから大きく逸脱した国を検出すると即時X投稿
 
 ---
 
-## Tech Stack
+## 技術スタック
 
-| Layer | Technology |
+| レイヤー | 使用技術 |
 |---|---|
-| Frontend | Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS v4 |
-| Map | Mapbox GL JS v3 |
-| Auth | Supabase Auth (Google OAuth) |
-| Database | Supabase (PostgreSQL) |
-| Data warehouse | Google BigQuery |
-| Data source | GDELT Global Knowledge Graph |
-| Automation | GitHub Actions (cron pipeline + anomaly detection) |
-| Social | X API v2 (scheduled posts + anomaly alerts) |
-| Deployment | Vercel |
-| i18n | next-intl (EN / JA) |
+| フロントエンド | Next.js 16（App Router）、React 19、TypeScript（strict）、Tailwind CSS v4 |
+| 地図 | Mapbox GL JS v3 |
+| 認証 | Supabase Auth（Google OAuth） |
+| データベース | Supabase（PostgreSQL） |
+| データウェアハウス | Google BigQuery |
+| データソース | GDELT Global Knowledge Graph |
+| 自動化 | GitHub Actions（cronパイプライン + 異常検知） |
+| SNS連携 | X API v2（定期投稿 + 異常アラート） |
+| デプロイ | Vercel |
+| 多言語対応 | next-intl（日本語 / 英語） |
 
 ---
 
-## Features
+## 機能一覧
 
-| Feature | Status |
+| 機能 | 状態 |
 |---|---|
-| Interactive Mapbox globe, emotion color layers | Done |
-| Country detail panel — radar chart, 24h trend, source news | Done |
-| Google OAuth sign-in | Done |
-| Favorites (save countries & sectors) | Done |
-| Hourly GDELT → BigQuery → Supabase pipeline | Done |
-| X auto-posting — scheduled (6h) + anomaly alerts | Done |
-| Anomaly detection (z-score vs 7-day baseline) | Done |
-| OG image generation via `/api/og` | Done |
-| PWA (offline support, installable) | Done |
-| Sector view (Economy, Politics, Tech, …) | In progress |
-| Region drill-down (continent → country → region) | In progress |
+| インタラクティブMapboxグローブ・感情カラーレイヤー | 完成 |
+| 国詳細パネル（感情バーチャート・24hトレンド・根拠ニュース） | 完成 |
+| Google OAuth サインイン | 完成 |
+| お気に入り（国・セクターの保存） | 完成 |
+| 毎時 GDELT → BigQuery → Supabase パイプライン | 完成 |
+| X 自動投稿（6時間定期 + 異常アラート） | 完成 |
+| 異常検知（z-score vs 7日間ベースライン） | 完成 |
+| OGイメージ動的生成（`/api/og`） | 完成 |
+| PWA（オフライン対応・インストール可能） | 完成 |
+| セクタービュー（経済・政治・テクノロジー等） | 実装中 |
+| 地域階層ナビゲーション（大陸 → 国 → 地域） | 実装中 |
 
 ---
 
-## Data Pipeline
+## データパイプライン
 
 ```
 scripts/
-├── fetch-gdelt.ts       # Pull GKG records from BigQuery (partition-filtered)
-├── aggregate.ts         # Compute per-country emotion scores
-├── detect-anomaly.ts    # Z-score anomaly detection vs 7-day baseline
-├── post-to-x.ts         # Post to X (scheduled or anomaly mode)
-└── generate-map-image.ts  # Headless screenshot for X card image
+├── fetch-gdelt.ts        # BigQueryからGKGレコードを取得（パーティションフィルタ付き）
+├── aggregate.ts          # 国別感情スコアを集計
+├── detect-anomaly.ts     # z-scoreによる異常検知（7日間ベースライン比較）
+├── post-to-x.ts          # X投稿（定期モード / 異常モード）
+└── generate-map-image.ts # X投稿用カード画像をヘッドレス生成
 ```
 
-The pipeline runs as a GitHub Actions workflow (`.github/workflows/data-pipeline.yml`) on a UTC cron schedule. Each step logs BigQuery usage and X API credit balance to prevent quota overruns.
+パイプラインはGitHub Actionsワークフロー（`.github/workflows/data-pipeline.yml`）としてUTC基準のcronで動作。各ステップでBigQuery使用量とX APIクレジット残高をログ出力し、クォータ超過を防止しています。
 
 ---
 
-## Local Setup
+## ローカル起動
 
 ```bash
-# Prerequisites: Node.js 20+, pnpm 10+
+# 前提: Node.js 20+, pnpm 10+
 
 git clone https://github.com/souma/world-emotion-map.git
 cd world-emotion-map
 pnpm install
 
-# Copy and fill in environment variables
+# 環境変数を設定
 cp .env.local.example .env.local
-# Required: NEXT_PUBLIC_MAPBOX_TOKEN, NEXT_PUBLIC_SUPABASE_URL,
-#           NEXT_PUBLIC_SUPABASE_ANON_KEY, BIGQUERY_PROJECT_ID, ...
+# 必須: NEXT_PUBLIC_MAPBOX_TOKEN, NEXT_PUBLIC_SUPABASE_URL,
+#       NEXT_PUBLIC_SUPABASE_ANON_KEY, BIGQUERY_PROJECT_ID, ...
 
 pnpm dev        # http://localhost:3000
 pnpm lint       # ESLint
-pnpm build      # Production build
+pnpm build      # 本番ビルド
 ```
 
 ---
 
-## Project Structure
+## ディレクトリ構成
 
 ```
 src/
 ├── app/
-│   ├── [locale]/           # i18n routes (EN/JA)
-│   │   ├── page.tsx        # Home — map + detail panel
-│   │   ├── favorites/      # Saved countries & sectors
-│   │   └── about/          # About + email subscribe
+│   ├── [locale]/               # i18nルート（日本語/英語）
+│   │   ├── page.tsx            # ホーム — マップ + 詳細パネル
+│   │   ├── favorites/          # お気に入り一覧
+│   │   └── about/              # サービス概要 + メール購読
 │   └── api/
-│       ├── emotions/       # Emotion data endpoint (client fallback)
-│       └── og/             # Dynamic OG image
+│       ├── emotions/           # 感情データエンドポイント（クライアントフォールバック）
+│       └── og/                 # OGイメージ動的生成
 ├── components/
 │   └── map/
-│       ├── WorldMap.tsx         # Mapbox GL JS wrapper
-│       ├── MapSection.tsx       # State orchestration
+│       ├── WorldMap.tsx         # Mapbox GL JSラッパー
+│       ├── MapSection.tsx       # 状態管理オーケストレーション
 │       ├── CountryDetailPanel.tsx
 │       ├── EmotionBarChart.tsx
 │       └── TrendSparkline.tsx
 ├── lib/
-│   ├── emotions.ts         # Score computation + color mapping
-│   └── fips-to-iso.ts      # FIPS-10-4 → ISO 3166-1 (70+ entries)
+│   ├── emotions.ts              # スコア計算 + カラーマッピング
+│   └── fips-to-iso.ts           # FIPS-10-4 → ISO 3166-1（70件以上）
 └── hooks/
-    ├── useTrend.ts          # 24h emotion history from Supabase
-    └── useFavorite.ts       # Favorites CRUD
+    ├── useTrend.ts              # Supabaseから24h感情履歴を取得
+    └── useFavorite.ts           # お気に入りCRUD
 ```
 
 ---
 
-## License
+## ライセンス
 
 MIT
