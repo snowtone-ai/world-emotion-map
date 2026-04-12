@@ -44,16 +44,21 @@ export async function fetchOgImageBuffer(): Promise<Buffer | null> {
 // ── Direct execution ──────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] === __filename) {
-  console.log(`[generate-map-image] Fetching from ${WEM_BASE_URL}/api/og ...`);
-  const buf = await fetchOgImageBuffer();
-  if (buf) {
-    const outPath = "/tmp/wem-og.png";
-    writeFileSync(outPath, buf);
-    console.log(
-      `[generate-map-image] ✓ Saved ${buf.byteLength.toLocaleString()} bytes → ${outPath}`,
-    );
-  } else {
-    console.error("[generate-map-image] ✗ Failed to generate image");
+  (async () => {
+    console.log(`[generate-map-image] Fetching from ${WEM_BASE_URL}/api/og ...`);
+    const buf = await fetchOgImageBuffer();
+    if (buf) {
+      const outPath = "/tmp/wem-og.png";
+      writeFileSync(outPath, buf);
+      console.log(
+        `[generate-map-image] ✓ Saved ${buf.byteLength.toLocaleString()} bytes → ${outPath}`,
+      );
+    } else {
+      console.error("[generate-map-image] ✗ Failed to generate image");
+      process.exit(1);
+    }
+  })().catch((err: unknown) => {
+    console.error(err);
     process.exit(1);
-  }
+  });
 }
