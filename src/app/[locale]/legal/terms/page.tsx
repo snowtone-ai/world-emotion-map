@@ -149,7 +149,7 @@ export default async function TermsPage({
           </h2>
           <p>
             For questions about these Terms, contact us at{" "}
-            <strong className="text-[var(--wem-text)]">legal@worldemotionmap.com</strong>.
+            <strong className="text-[var(--wem-text)]">legal@worldemomap.com</strong>.
           </p>
         </section>
       </div>

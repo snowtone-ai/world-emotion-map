@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const WEM_URL = "https://worldemotionmap.com";
+const WEM_URL = "https://worldemomap.com";
 const OG_IMAGE = `${WEM_URL}/api/og`;
 
 export const metadata: Metadata = {

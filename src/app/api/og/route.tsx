@@ -375,7 +375,7 @@ export async function GET() {
               display: "flex",
             }}
           >
-            worldemotionmap.com
+            worldemomap.com
           </div>
           <div
             style={{

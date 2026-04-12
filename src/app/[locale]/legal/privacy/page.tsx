@@ -133,7 +133,7 @@ export default async function PrivacyPage({
           </ul>
           <p className="mt-2">
             To exercise any of these rights, email us at{" "}
-            <strong className="text-[var(--wem-text)]">privacy@worldemotionmap.com</strong>.
+            <strong className="text-[var(--wem-text)]">privacy@worldemomap.com</strong>.
             We will respond within 30 days.
           </p>
         </section>
