@@ -1,16 +1,26 @@
 /**
- * FIPS 10-4 → ISO 3166-1 alpha-2 country code mapping.
+ * Non-ISO country code → ISO 3166-1 alpha-2 mapping.
  *
- * GDELT GKG V2 uses FIPS 10-4 codes in the V2_LOCATIONS field.
- * Mapbox GL JS expects ISO 3166-1 alpha-2 codes to match country features.
+ * This project's data source (Supabase `emotion_snapshots.country_code`)
+ * is **ISO-first**: the vast majority of rows already use valid ISO 3166-1
+ * alpha-2 codes (e.g. `AU` = Australia, `CH` = Switzerland, `JP` = Japan).
+ * Only a small number of rows leak through as GDELT-specific or FIPS 10-4
+ * codes that are NOT valid ISO (e.g. `RI`, `AY`, `RB`).
  *
- * Only entries where FIPS ≠ ISO are listed.
- * Codes that are identical in both systems (US, FR, IN, etc.) need no mapping.
+ * IMPORTANT — Whitelist policy:
+ *   Only include entries where the source code is **not** a valid ISO 3166-1
+ *   alpha-2 country code. Otherwise the mapping would corrupt real countries
+ *   (e.g. `AU: "AT"` would turn Australia into Austria, `CH: "CN"` would turn
+ *   Switzerland into China, etc.).
+ *
+ * Previous versions of this file mapped FIPS → ISO for codes that collide
+ * with valid ISO (AU, CH, SZ, RS, BM, GG, NU, PM, AS, GM). Those entries
+ * were destructive against this project's ISO-first data and have been
+ * removed.
  */
 export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
-  // Europe
-  UK: "GB", // United Kingdom
-  GM: "DE", // Germany
+  // ── Europe ──────────────────────────────────────────────────────────────
+  UK: "GB", // United Kingdom (ISO UK reserved, GB is official)
   SW: "SE", // Sweden
   DA: "DK", // Denmark
   SP: "ES", // Spain
@@ -21,48 +31,39 @@ export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
   LH: "LT", // Lithuania
   LG: "LV", // Latvia
   EN: "EE", // Estonia
-  RS: "RU", // Russia (ISO RS = Serbia, but FIPS RS = Russia)
-  AU: "AT", // Austria  (ISO AU = Australia; GDELT Australia = FIPS AS)
-  SZ: "CH", // Switzerland (ISO SZ = Eswatini; GDELT Eswatini = FIPS WZ)
   IC: "IS", // Iceland
-  OS: "AT", // Austria alt spelling in some GDELT variants
+  OS: "AT", // Austria (alt spelling in some GDELT variants)
   LO: "SK", // Slovakia
   MJ: "ME", // Montenegro
   BU: "BG", // Bulgaria (alt FIPS)
   KV: "XK", // Kosovo (unofficial ISO XK)
 
-  // Asia
+  // ── Asia ────────────────────────────────────────────────────────────────
   JA: "JP", // Japan
   KS: "KR", // South Korea
   RP: "PH", // Philippines
   VM: "VN", // Vietnam
   TU: "TR", // Turkey
-  CH: "CN", // China (ISO CH = Switzerland; handled above via SZ→CH)
   LE: "LB", // Lebanon
   IZ: "IQ", // Iraq
   KU: "KW", // Kuwait
   CE: "LK", // Sri Lanka
   CB: "KH", // Cambodia
-  BM: "MM", // Myanmar
   AJ: "AZ", // Azerbaijan
-  GG: "GE", // Georgia (country)
   TI: "TJ", // Tajikistan
   TX: "TM", // Turkmenistan
-  KG: "KG", // Kyrgyzstan (same, but just in case)
-  UZ: "UZ", // Uzbekistan (same)
   WE: "PS", // West Bank (Palestinian territories)
   GZ: "PS", // Gaza Strip (Palestinian territories)
   YM: "YE", // Yemen
 
-  // Africa
+  // ── Africa ──────────────────────────────────────────────────────────────
   SF: "ZA", // South Africa
   ZI: "ZW", // Zimbabwe
   SU: "SD", // Sudan
   IV: "CI", // Ivory Coast / Côte d'Ivoire
-  UV: "BF", // Burkina Faso (FIPS UV, ISO BF)
-  RW: "RW", // Rwanda (same)
-  OD: "SO", // Somalia alt in some GDELT variants
-  WZ: "SZ", // Eswatini/Swaziland
+  UV: "BF", // Burkina Faso
+  OD: "SO", // Somalia (alt in some GDELT variants)
+  WZ: "SZ", // Eswatini / Swaziland
   WA: "NA", // Namibia
   BC: "BW", // Botswana
   GV: "GN", // Guinea
@@ -71,34 +72,33 @@ export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
   EK: "GQ", // Equatorial Guinea (alt FIPS)
   WI: "EH", // Western Sahara
 
-  // Americas
+  // ── Americas ────────────────────────────────────────────────────────────
   RQ: "PR", // Puerto Rico
   VQ: "VI", // U.S. Virgin Islands
   TB: "TT", // Trinidad and Tobago
-  BB: "BB", // Barbados (same)
-  JM: "JM", // Jamaica (same)
   HO: "HN", // Honduras
-  NU: "NI", // Nicaragua alt
-  CS: "CR", // Costa Rica
-  PM: "PA", // Panama
+  CS: "CR", // Costa Rica (FIPS)
   HA: "HT", // Haiti
   DR: "DO", // Dominican Republic
   GJ: "GD", // Grenada
   NS: "SR", // Suriname
   CJ: "KY", // Cayman Islands
 
-  // Oceania
-  AS: "AU", // Australia (FIPS AS, ISO AU)
+  // ── Oceania ─────────────────────────────────────────────────────────────
   PP: "PG", // Papua New Guinea
-  WS: "WS", // Samoa (same)
-  TV: "TV", // Tuvalu (same)
   NH: "VU", // Vanuatu
-  GK: "GG", // Guernsey
+  GK: "GG", // Guernsey (alt FIPS)
+
+  // ── GDELT-specific / FIPS 10-4 codes not matching any ISO country ──────
+  RI: "RS", // Serbia (GDELT/FIPS — ISO RI not assigned)
+  AY: "AQ", // Antarctica (FIPS — ISO AQ)
+  RB: "BA", // Republika Srpska → Bosnia and Herzegovina (GDELT-specific)
 } as const;
 
 /**
- * Normalizes a country code from FIPS to ISO.
- * Returns the ISO code if a mapping exists, otherwise returns the input unchanged.
+ * Normalizes a country code from FIPS/GDELT-specific to ISO 3166-1 alpha-2.
+ * Returns the ISO code if an override exists, otherwise returns the input
+ * unchanged (assumes input is already valid ISO alpha-2).
  */
 export function normalizeCountryCode(code: string): string {
   return FIPS_TO_ISO[code] ?? code;
