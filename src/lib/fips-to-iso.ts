@@ -26,6 +26,10 @@ export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
   SZ: "CH", // Switzerland (ISO SZ = Eswatini; GDELT Eswatini = FIPS WZ)
   IC: "IS", // Iceland
   OS: "AT", // Austria alt spelling in some GDELT variants
+  LO: "SK", // Slovakia
+  MJ: "ME", // Montenegro
+  BU: "BG", // Bulgaria (alt FIPS)
+  KV: "XK", // Kosovo (unofficial ISO XK)
 
   // Asia
   JA: "JP", // Japan
@@ -48,6 +52,7 @@ export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
   UZ: "UZ", // Uzbekistan (same)
   WE: "PS", // West Bank (Palestinian territories)
   GZ: "PS", // Gaza Strip (Palestinian territories)
+  YM: "YE", // Yemen
 
   // Africa
   SF: "ZA", // South Africa
@@ -58,6 +63,13 @@ export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
   RW: "RW", // Rwanda (same)
   OD: "SO", // Somalia alt in some GDELT variants
   WZ: "SZ", // Eswatini/Swaziland
+  WA: "NA", // Namibia
+  BC: "BW", // Botswana
+  GV: "GN", // Guinea
+  PU: "GW", // Guinea-Bissau
+  MI: "MW", // Malawi
+  EK: "GQ", // Equatorial Guinea (alt FIPS)
+  WI: "EH", // Western Sahara
 
   // Americas
   RQ: "PR", // Puerto Rico
@@ -69,12 +81,19 @@ export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
   NU: "NI", // Nicaragua alt
   CS: "CR", // Costa Rica
   PM: "PA", // Panama
+  HA: "HT", // Haiti
+  DR: "DO", // Dominican Republic
+  GJ: "GD", // Grenada
+  NS: "SR", // Suriname
+  CJ: "KY", // Cayman Islands
 
   // Oceania
   AS: "AU", // Australia (FIPS AS, ISO AU)
   PP: "PG", // Papua New Guinea
   WS: "WS", // Samoa (same)
   TV: "TV", // Tuvalu (same)
+  NH: "VU", // Vanuatu
+  GK: "GG", // Guernsey
 } as const;
 
 /**
