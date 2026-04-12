@@ -1,7 +1,5 @@
 # World Emotion Map (WEM)
 
-**公開中 → [worldemomap.com](https://worldemomap.com)**
-
 世界中のニュースメディアから感情シグナルをリアルタイムで収集・分析し、国別の「感情の今」をインタラクティブな地球儀上に可視化するWebアプリケーション。
 
 ---
