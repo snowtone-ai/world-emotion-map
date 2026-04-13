@@ -31,20 +31,5 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
-    screenshots: [
-      {
-        src: "/screenshots/desktop.png",
-        sizes: "1280x720",
-        type: "image/png",
-        form_factor: "wide",
-        label: "World Emotion Map — desktop view",
-      },
-      {
-        src: "/screenshots/mobile.png",
-        sizes: "390x844",
-        type: "image/png",
-        label: "World Emotion Map — mobile view",
-      },
-    ],
   };
 }
