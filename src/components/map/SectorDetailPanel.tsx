@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Emotion } from "@/lib/emotions";
 import type { SectorDataItem } from "@/app/api/sectors/route";
 import { useSectorTrend } from "@/hooks/useSectorTrend";
@@ -14,6 +14,15 @@ type Props = {
   onClose: () => void;
 };
 
+const PALETTE_6: Record<string, string> = {
+  joy: "#FFD166",
+  trust: "#06D6A0",
+  fear: "#A78BFA",
+  anger: "#FF6B6B",
+  sadness: "#4EA8DE",
+  optimism: "#84CC16",
+};
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[10px] font-mono uppercase tracking-widest text-[var(--wem-text-muted)] mb-2">
@@ -22,9 +31,81 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── Sub-sector drill-down view ─────────────────────────────────────────────
+function ChildSectorView({
+  child,
+  parentName,
+  locale,
+  onBack,
+}: {
+  child: SectorDataItem;
+  parentName: string;
+  locale: string;
+  onBack: () => void;
+}) {
+  const { snapshots, loading } = useSectorTrend(child.slug);
+  const name = locale === "ja" ? child.nameJa : child.nameEn;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Breadcrumb */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-[11px] text-[var(--wem-text-muted)]
+                   hover:text-[var(--wem-text)] transition-colors w-fit"
+      >
+        <span>←</span>
+        <span className="font-mono uppercase tracking-wide">{parentName}</span>
+      </button>
+
+      {/* Child name */}
+      <div>
+        <span className="text-[10px] font-mono tracking-widest uppercase text-[var(--wem-text-muted)]">
+          {child.slug}
+        </span>
+        <h3 className="text-base font-bold text-[var(--wem-text)] leading-tight">{name}</h3>
+        {child.timestamp && (
+          <p className="text-[10px] text-[var(--wem-text-muted)] mt-0.5">
+            {new Date(child.timestamp).toLocaleString(locale === "ja" ? "ja-JP" : "en-US", {
+              month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+            })}
+          </p>
+        )}
+      </div>
+
+      {/* Emotion scores */}
+      <section>
+        <SectionLabel>Current Emotions</SectionLabel>
+        {child.scores ? (
+          <EmotionBarChart scores={child.scores as Record<Emotion, number>} />
+        ) : (
+          <p className="text-xs text-[var(--wem-text-muted)]">
+            No data yet — will appear after next pipeline run
+          </p>
+        )}
+      </section>
+
+      {/* 24h Trend */}
+      <section>
+        <SectionLabel>24h Trend</SectionLabel>
+        {loading ? (
+          <div className="h-14 rounded bg-[var(--wem-surface-raised)] animate-pulse" />
+        ) : (
+          <TrendSparkline snapshots={snapshots} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ── Main panel ─────────────────────────────────────────────────────────────
 export function SectorDetailPanel({ sectorSlug, allData, locale, onClose }: Props) {
+  const [selectedChildSlug, setSelectedChildSlug] = useState<string | null>(null);
+
   const sector = allData.find((s) => s.slug === sectorSlug);
-  const children = allData.filter((s) => s.parentSlug === sectorSlug && s.scores !== null);
+  const children = allData.filter((s) => s.parentSlug === sectorSlug);
+  const selectedChild = children.find((c) => c.slug === selectedChildSlug) ?? null;
+
   const { snapshots, loading: trendLoading } = useSectorTrend(sectorSlug);
 
   const name = locale === "ja" ? sector?.nameJa : sector?.nameEn;
@@ -32,11 +113,14 @@ export function SectorDetailPanel({ sectorSlug, allData, locale, onClose }: Prop
   // Close on Escape
   useEffect(() => {
     function handler(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (selectedChildSlug) setSelectedChildSlug(null);
+        else onClose();
+      }
     }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [onClose, selectedChildSlug]);
 
   if (!sector) return null;
 
@@ -69,7 +153,7 @@ export function SectorDetailPanel({ sectorSlug, allData, locale, onClose }: Prop
           <h2 className="text-lg font-bold text-[var(--wem-text)] leading-tight">
             {name}
           </h2>
-          {sector.timestamp && (
+          {sector.timestamp && !selectedChild && (
             <p className="text-[10px] text-[var(--wem-text-muted)] mt-0.5">
               {new Date(sector.timestamp).toLocaleString(locale === "ja" ? "ja-JP" : "en-US", {
                 month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -89,51 +173,86 @@ export function SectorDetailPanel({ sectorSlug, allData, locale, onClose }: Prop
       </div>
 
       <div className="px-5 flex flex-col gap-6 pb-8">
-        {/* Emotion Scores */}
-        <section>
-          <SectionLabel>Current Emotions</SectionLabel>
-          {sector.scores ? (
-            <EmotionBarChart scores={sector.scores as Record<Emotion, number>} />
-          ) : (
-            <p className="text-xs text-[var(--wem-text-muted)]">
-              No data yet — will appear after next pipeline run
-            </p>
-          )}
-        </section>
+        {selectedChild ? (
+          // ── Drill-down: child sector view ──
+          <ChildSectorView
+            child={selectedChild}
+            parentName={(locale === "ja" ? sector.nameJa : sector.nameEn)}
+            locale={locale}
+            onBack={() => setSelectedChildSlug(null)}
+          />
+        ) : (
+          // ── Parent sector view ──
+          <>
+            {/* Emotion Scores */}
+            <section>
+              <SectionLabel>Current Emotions</SectionLabel>
+              {sector.scores ? (
+                <EmotionBarChart scores={sector.scores as Record<Emotion, number>} />
+              ) : (
+                <p className="text-xs text-[var(--wem-text-muted)]">
+                  No data yet — will appear after next pipeline run
+                </p>
+              )}
+            </section>
 
-        {/* 24h Trend */}
-        <section>
-          <SectionLabel>24h Trend</SectionLabel>
-          {trendLoading ? (
-            <div className="h-14 rounded bg-[var(--wem-surface-raised)] animate-pulse" />
-          ) : (
-            <TrendSparkline snapshots={snapshots} />
-          )}
-        </section>
+            {/* 24h Trend */}
+            <section>
+              <SectionLabel>24h Trend</SectionLabel>
+              {trendLoading ? (
+                <div className="h-14 rounded bg-[var(--wem-surface-raised)] animate-pulse" />
+              ) : (
+                <TrendSparkline snapshots={snapshots} />
+              )}
+            </section>
 
-        {/* Sub-sectors */}
-        {children.length > 0 && (
-          <section>
-            <SectionLabel>Sub-sectors</SectionLabel>
-            <ul className="flex flex-col gap-2">
-              {children.map((child) => {
-                const childName = locale === "ja" ? child.nameJa : child.nameEn;
-                const dominant = child.scores
-                  ? Object.entries(child.scores).sort((a, b) => b[1] - a[1])[0]
-                  : null;
-                return (
-                  <li key={child.slug} className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--wem-text-secondary)]">{childName}</span>
-                    {dominant && (
-                      <span className="text-[10px] font-mono text-[var(--wem-text-muted)] capitalize">
-                        {dominant[0]} {Math.round(dominant[1] * 100)}
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+            {/* Sub-sectors — clickable */}
+            {children.length > 0 && (
+              <section>
+                <SectionLabel>Sub-sectors</SectionLabel>
+                <ul className="flex flex-col gap-1.5">
+                  {children.map((child) => {
+                    const childName = locale === "ja" ? child.nameJa : child.nameEn;
+                    const dominant = child.scores
+                      ? (Object.entries(child.scores) as [string, number][])
+                          .filter(([k]) => k in PALETTE_6)
+                          .sort((a, b) => b[1] - a[1])[0]
+                      : null;
+                    return (
+                      <li key={child.slug}>
+                        <button
+                          onClick={() => setSelectedChildSlug(child.slug)}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-lg
+                                     hover:bg-white/8 transition-colors text-left group"
+                        >
+                          <span className="text-xs text-[var(--wem-text-secondary)] group-hover:text-[var(--wem-text)] transition-colors">
+                            {childName}
+                          </span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {dominant && (
+                              <>
+                                <span
+                                  className="w-2 h-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: PALETTE_6[dominant[0]] ?? "#4B5563" }}
+                                />
+                                <span className="text-[10px] font-mono text-[var(--wem-text-muted)] capitalize">
+                                  {dominant[0]} {Math.round(dominant[1] * 100)}
+                                </span>
+                              </>
+                            )}
+                            {!child.scores && (
+                              <span className="text-[10px] text-[var(--wem-text-muted)]">—</span>
+                            )}
+                            <span className="text-[10px] text-[var(--wem-text-muted)] group-hover:text-[var(--wem-text-secondary)] transition-colors">›</span>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+          </>
         )}
       </div>
     </aside>
