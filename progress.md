@@ -114,6 +114,24 @@
 2. `supabase/seed_sectors.sql` の内容を貼り付けて実行
 3. 次の毎時:05 の GitHub Actions pipeline 実行後にセクターデータが蓄積開始
 
-## 未着手タスク
-- Feature 2: Region Hierarchy Navigation（fetch-gdelt.ts パイプライン改修が必要 → 後回し）
-- Feature 15: AdSense（Google 審査申請が必要 → コード挿入は今すぐ可能）
+## 完了タスク（2026-04-13 続き2）
+- PWA manifest: 存在しない screenshots エントリ削除 ✅
+- F9 スコープ決定: 国(country)レイヤーのみ。セクターお気に入りはスコープ外。vision.md 更新済み ✅
+- GA4 設定: NEXT_PUBLIC_GA_ID=G-KQQT7FX9F8 を Vercel に設定済み。計測動作確認済み ✅
+- Sector seed SQL: Supabase に実行済み（31セクター投入済み）✅
+- F3 サブセクタードリルダウン: SectorDetailPanel にクリック→子セクター詳細表示を追加 ✅
+  - 子セクターをクリック → 感情スコア + 24h トレンド表示
+  - ← ブレッドクラムで親に戻る
+  - Escape キーで子→親→パネル閉じる
+
+## worldemomap.com DNS 状態（2026-04-13）
+- Xserver に A レコード (76.76.21.21) + CNAME (www → cname.vercel-dns.com) 設定済み
+- DNS 伝播中（1〜24時間）。完了次第 worldemomap.com が使用可能になる
+
+## 追加タスク（プロジェクト完了後）
+- Feature 2: Region Hierarchy Navigation（fetch-gdelt.ts パイプライン改修が必要）
+- Feature 15: AdSense（Google 審査申請が必要）
+
+## プロジェクト完了条件
+- 上記 Feature 2 と AdSense 以外のすべての機能が完成 ✅
+- worldemomap.com の DNS 伝播待ちのみ残
