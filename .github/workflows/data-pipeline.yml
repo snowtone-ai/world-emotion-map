@@ -3,7 +3,7 @@ name: Data Pipeline & Anomaly Detection
 on:
   schedule:
     - cron: "5 * * * *"   # Every hour at :05 — data pipeline + anomaly detection
-    - cron: "10 0,6,12,18 * * *"  # UTC 0:10, 6:10, 12:10, 18:10 — X scheduled post
+    - cron: "10 0,12 * * *"  # UTC 0:10, 12:10 — X scheduled post (every 12h)
   workflow_dispatch:
     inputs:
       skip_pipeline:
@@ -70,9 +70,9 @@ jobs:
           (github.event_name == 'workflow_dispatch' && inputs.post_mode == 'anomaly')
         run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode anomaly
 
-      # ── X: scheduled 6h post ────────────────────────────────
+      # ── X: scheduled 12h post ───────────────────────────────
       - name: Post Scheduled Update to X
         if: |
-          (github.event_name == 'schedule' && github.event.schedule == '10 0,6,12,18 * * *') ||
+          (github.event_name == 'schedule' && github.event.schedule == '10 0,12 * * *') ||
           (github.event_name == 'workflow_dispatch' && inputs.post_mode == 'scheduled')
         run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode scheduled
