@@ -1,27 +1,10 @@
 import { getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { SignInButton } from "./SignInButton";
 import { UserMenu } from "./UserMenu";
+import { ViewToggle } from "./ViewToggle";
 import { createClient } from "@/lib/supabase/server";
-
-function ViewToggle({
-  regionLabel,
-  sectorLabel,
-}: {
-  regionLabel: string;
-  sectorLabel: string;
-}) {
-  return (
-    <div className="hidden sm:flex items-center glass rounded-lg p-0.5 text-xs">
-      <span className="px-3 py-1 rounded-md bg-[var(--wem-accent)] text-white font-medium">
-        {regionLabel}
-      </span>
-      <span className="px-3 py-1 text-[var(--wem-text-secondary)]">
-        {sectorLabel}
-      </span>
-    </div>
-  );
-}
 
 export async function Header() {
   const t = await getTranslations("Header");
@@ -77,8 +60,15 @@ export async function Header() {
         </span>
       </div>
 
-      {/* Center: Region / Sector toggle (placeholder) */}
-      <ViewToggle regionLabel={t("region")} sectorLabel={t("sector")} />
+      {/* Center: Region / Sector toggle */}
+      <Suspense fallback={
+        <div className="hidden sm:flex items-center glass rounded-lg p-0.5 text-xs">
+          <span className="px-3 py-1 rounded-md bg-[var(--wem-accent)] text-white font-medium">{t("region")}</span>
+          <span className="px-3 py-1 text-[var(--wem-text-secondary)]">{t("sector")}</span>
+        </div>
+      }>
+        <ViewToggle regionLabel={t("region")} sectorLabel={t("sector")} />
+      </Suspense>
 
       {/* Right: locale switcher + auth */}
       <div className="flex items-center gap-3">

@@ -36,6 +36,16 @@
     "empty": "お気に入りはまだありません。",
     "emptyHint": "国パネルの ☆ をクリックして保存できます。"
   },
+  "Sector": {
+    "noData": "セクターデータは次の1時間ごとのパイプライン実行後に表示されます",
+    "notConfigured": "セクターデータが未設定です",
+    "notConfiguredHint": "Supabase SQL エディタで supabase/seed_sectors.sql を実行してセクターデータを有効化してください。",
+    "currentEmotions": "現在の感情",
+    "trend24h": "24時間トレンド",
+    "subSectors": "サブセクター",
+    "articles": "件の記事",
+    "noDataYet": "データなし"
+  },
   "Footer": {
     "about": "About",
     "privacy": "プライバシーポリシー",

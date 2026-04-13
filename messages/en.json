@@ -36,6 +36,16 @@
     "empty": "No favorites yet.",
     "emptyHint": "Click ☆ on any country panel to save it here."
   },
+  "Sector": {
+    "noData": "Sector data will appear after the next hourly pipeline run",
+    "notConfigured": "Sector data not yet configured",
+    "notConfiguredHint": "Run supabase/seed_sectors.sql in the Supabase SQL editor to enable sector-level tracking.",
+    "currentEmotions": "Current Emotions",
+    "trend24h": "24h Trend",
+    "subSectors": "Sub-sectors",
+    "articles": "articles",
+    "noDataYet": "No data yet"
+  },
   "Footer": {
     "about": "About",
     "privacy": "Privacy Policy",
