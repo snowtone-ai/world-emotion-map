@@ -102,6 +102,18 @@
 - 異常検知: ✅ 再有効化（`false &&` 削除）
 - カスタムドメイン worldemomap.com: ✅ Valid Configuration 確認
 
+## 完了タスク（2026-04-13 続き）
+- Feature 3: Sector View UI: ✅ SectorSection + SectorDetailPanel 実装済み
+- Feature 4: View Switching: ✅ Header の Region/Sector トグル機能化
+- Feature 6: Sector Detail Panel: ✅ 実装済み（サブセクター一覧 + トレンド）
+- /api/sectors: ✅ 新規エンドポイント追加
+- supabase/seed_sectors.sql: ✅ 作成済み（31セクター定義）
+
+## セクターデータを有効化する手順（ユーザーアクション必要）
+1. Supabase SQL エディタを開く
+2. `supabase/seed_sectors.sql` の内容を貼り付けて実行
+3. 次の毎時:05 の GitHub Actions pipeline 実行後にセクターデータが蓄積開始
+
 ## 未着手タスク
-- Feature 9: Region Hierarchy Navigation（実データ待ち）
-- Feature 12: Sector View（実データ待ち）
+- Feature 2: Region Hierarchy Navigation（fetch-gdelt.ts パイプライン改修が必要 → 後回し）
+- Feature 15: AdSense（Google 審査申請が必要 → コード挿入は今すぐ可能）
