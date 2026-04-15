@@ -24,6 +24,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type { GdeltArticle } from "./fetch-gdelt.ts";
+import { FIPS_TO_ISO } from "../src/lib/fips-to-iso";
 
 // ──────────────────────────────────────────────
 // Config
@@ -128,7 +129,37 @@ const FIPS_TO_CONTINENT: Record<string, string> = {
 
 const UNKNOWN_CONTINENT = "XX"; // 不明な国コード用
 
+// ──────────────────────────────────────────────
+// FIPS → ISO normalization (ingestion-time, full mapping)
+// ──────────────────────────────────────────────
+
+/**
+ * At ingestion time ALL location codes from GDELT are FIPS 10-4.
+ * We apply the full mapping including "collision" cases that the frontend
+ * whitelist (FIPS_TO_ISO) intentionally excludes (e.g. GM = Germany in FIPS
+ * but GM = Gambia in ISO — safe to override here because the source is always FIPS).
+ */
+const FIPS_COLLISION_OVERRIDES: Record<string, string> = {
+  GM: "DE", // Germany     (FIPS GM; ISO GM = Gambia)
+  CH: "CN", // China       (FIPS CH; ISO CH = Switzerland)
+  SZ: "CH", // Switzerland (FIPS SZ; ISO SZ = Eswatini)
+  AS: "AU", // Australia   (FIPS AS; ISO AS = American Samoa)
+  RS: "RU", // Russia      (FIPS RS; ISO RS = Serbia)
+  BM: "MM", // Myanmar     (FIPS BM; ISO BM = Bermuda)
+  GG: "GE", // Georgia     (FIPS GG; ISO GG = Guernsey)
+};
+
+const FIPS_TO_ISO_FULL: Readonly<Record<string, string>> = {
+  ...FIPS_TO_ISO,
+  ...FIPS_COLLISION_OVERRIDES,
+};
+
+function normalizeCountryCode(code: string): string {
+  return FIPS_TO_ISO_FULL[code] ?? code;
+}
+
 function getContinent(countryCode: string): string {
+  // countryCode is already ISO-normalized before this is called
   return COUNTRY_CONTINENT[countryCode] ?? FIPS_TO_CONTINENT[countryCode] ?? UNKNOWN_CONTINENT;
 }
 
@@ -201,17 +232,23 @@ function extractEmotions(
 
   const fear = norm(gcam.fear);
   const trust = norm(gcam.trust);
+  const joy = norm(gcam.joy);
+  const optimism = norm(gcam.anticipation);
+
+  // uncertainty: fear を、安心・ポジティブ感情（trust, joy, optimism）を含む分母で割る。
+  // 旧式: fear / (fear + trust) → news negativity bias により全国で高くなる構造的問題あり
+  // 新式: joy と optimism を分母に加えることで、明るいニュースが多い国ほど下がる
+  const uncertaintyDenom = fear + trust + joy * 0.5 + optimism * 0.5;
 
   const scores: EmotionScores = {
-    joy: norm(gcam.joy),
+    joy,
     trust,
     fear,
     anger: norm(gcam.anger),
     sadness: norm(gcam.sadness),
     surprise: norm(gcam.surprise),
-    optimism: norm(gcam.anticipation),
-    // uncertainty: fear/(fear+trust) の比率。trust より fear が多いほど高くなる [0, 1]
-    uncertainty: fear + trust > 0 ? fear / (fear + trust) : 0,
+    optimism,
+    uncertainty: uncertaintyDenom > 0 ? fear / uncertaintyDenom : 0,
   };
 
   return { scores, weight };
@@ -395,9 +432,9 @@ async function main() {
     if (!extracted) continue;
     const { scores, weight } = extracted;
 
-    // 記事が対応する国コードを列挙（重複除去）
+    // 記事が対応する国コードを列挙（FIPS→ISO正規化 + 重複除去）
     const countryCodes = [
-      ...new Set(article.locations.map((loc) => loc.countryCode)),
+      ...new Set(article.locations.map((loc) => normalizeCountryCode(loc.countryCode))),
     ];
 
     // 記事が対応するセクターを特定
