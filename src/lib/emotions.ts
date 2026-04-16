@@ -6,10 +6,14 @@
  *   4 — Quadrant (joy cluster, fear cluster, anger, sadness)
  *   6 — Detailed (business-relevant breakdown)
  *
- * All three modes use cross-country Z-score normalization to counteract
- * structural emotion biases (e.g. joy is always higher in raw GCAM data).
- * When all Z-scores are negative for a country, raw scores are used as
- * fallback so the map color always matches the breakdown panel values.
+ * Normalization strategy per mode:
+ *   Mode 2 — within-country share Z-score: positive/(pos+neg) share vs global
+ *             average. Removes absolute coverage-volume bias; gives ~50/50 split.
+ *   Mode 4 — cross-country Z-score on group raw scores + raw fallback when all
+ *             Z-scores are negative (preserves map/panel consistency).
+ *   Mode 6 — within-country share Z-score: each emotion / sum-of-6 vs global
+ *             average share. Removes structural joy dominance; always returns
+ *             the emotion with the most unusually high share (no raw fallback).
  */
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -146,19 +150,27 @@ function dominantKey2(scores: Record<Emotion, number>): string {
   return positiveScore(scores) >= negativeScore(scores) ? "positive" : "negative";
 }
 
+/**
+ * Share-based Z-score for mode 2.
+ * Computes positive_share = positive / (positive + negative), then compares
+ * Z-score of that share against the global distribution of positive shares.
+ * Since positive_share + negative_share = 1, a single Z-score suffices:
+ * positive wins when positive_share is above the global mean (Z ≥ 0).
+ * Eliminates absolute-coverage-volume bias that caused all-positive maps.
+ */
 function dominantKey2ZScore(
   scores: Record<Emotion, number>,
   stats: Record<"positive" | "negative", GroupStats>,
 ): string {
-  const pZ = zScore(positiveScore(scores), stats.positive);
-  const nZ = zScore(negativeScore(scores), stats.negative);
+  const pScore = positiveScore(scores);
+  const nScore = negativeScore(scores);
+  const total = pScore + nScore;
+  if (total === 0) return "positive";
 
-  // Both below average → raw fallback so the displayed color is still meaningful
-  if (pZ < 0 && nZ < 0) {
-    return dominantKey2(scores);
-  }
-
-  return nZ > pZ ? "negative" : "positive";
+  const pShare = pScore / total;
+  // stats.positive now holds the distribution of positive shares (not raw scores)
+  const pZ = zScore(pShare, stats.positive);
+  return pZ >= 0 ? "positive" : "negative";
 }
 
 // ── Mode 4: Quadrant ───────────────────────────────────────────────────────
@@ -237,24 +249,32 @@ function dominantKey6(scores: Record<Emotion, number>): string {
   return bestKey;
 }
 
+/**
+ * Share-based Z-score for mode 6.
+ * For each country, computes each emotion's share = score / sum_of_6_emotions,
+ * then Z-scores that share against the global distribution of per-emotion shares.
+ * This eliminates: (a) absolute coverage-volume bias (high-news countries have
+ * high everything) and (b) structural GCAM joy dominance.
+ * Always returns the emotion with the most unusually high share — no raw fallback
+ * needed since share-based scoring is already distribution-neutral.
+ */
 function dominantKey6ZScore(
   scores: Record<Emotion, number>,
   stats: Record<Mode6Key, GroupStats>,
 ): string {
+  const total = MODE6_KEYS.reduce((sum, k) => sum + scores[k], 0);
+
   let bestKey: string = "joy";
   let bestZ = -Infinity;
 
   for (const k of MODE6_KEYS) {
-    const z = zScore(scores[k], stats[k]);
+    const share = total > 0 ? scores[k] / total : 1 / MODE6_KEYS.length;
+    // stats[k] holds the distribution of this emotion's share across countries
+    const z = zScore(share, stats[k]);
     if (z > bestZ) {
       bestZ = z;
       bestKey = k;
     }
-  }
-
-  // All Z-scores negative → fall back to raw so color matches breakdown panel
-  if (bestZ < 0) {
-    return dominantKey6(scores);
   }
 
   return bestKey;
@@ -265,13 +285,15 @@ function dominantKey6ZScore(
 /**
  * Converts raw score data to a country → fill-color map for Mapbox.
  *
- * All three modes use cross-country Z-score normalization:
- *   - Mode 2: positive-group Z vs negative-group Z
- *   - Mode 4: four quadrant group Z-scores
- *   - Mode 6: six individual emotion Z-scores
+ * Normalization strategy per mode:
+ *   - Mode 2: Z-score of positive SHARE = positive/(pos+neg) vs global mean share.
+ *             ~50% positive / ~50% negative regardless of absolute GCAM levels.
+ *   - Mode 4: Z-score of raw group scores; raw fallback when all Z < 0
+ *             (preserves map/panel consistency for the 4-quadrant view).
+ *   - Mode 6: Z-score of within-country emotion SHARE = emotion/sum-of-6 vs
+ *             global mean share per emotion. Removes GCAM joy-dominance bias;
+ *             always returns the most unusually high-share emotion.
  *
- * When all Z-scores are negative for a country, raw scores are used as
- * fallback so the map color always matches the breakdown panel values.
  * Called client-side; O(n) per mode switch.
  */
 export function computeColorMap(
@@ -282,11 +304,17 @@ export function computeColorMap(
   const enoughData = data.length >= 5;
 
   // Pre-compute cross-country stats per mode
+  // Mode 2 & 6 use within-country share normalization to remove absolute
+  // coverage-volume bias (high-news countries score high on all emotions).
   const mode2Stats =
     mode === 2 && enoughData
-      ? buildStats(data, ["positive", "negative"] as const, (s, k) =>
-          k === "positive" ? positiveScore(s) : negativeScore(s),
-        )
+      ? buildStats(data, ["positive", "negative"] as const, (s, k) => {
+          const pScore = positiveScore(s);
+          const nScore = negativeScore(s);
+          const total = pScore + nScore;
+          if (total === 0) return 0.5;
+          return k === "positive" ? pScore / total : nScore / total;
+        })
       : null;
 
   const mode4Stats =
@@ -300,7 +328,10 @@ export function computeColorMap(
 
   const mode6Stats =
     mode === 6 && enoughData
-      ? buildStats(data, MODE6_KEYS, (s, k) => s[k])
+      ? buildStats(data, MODE6_KEYS, (s, k) => {
+          const total = MODE6_KEYS.reduce((sum, key) => sum + s[key], 0);
+          return total > 0 ? s[k] / total : 1 / MODE6_KEYS.length;
+        })
       : null;
 
   for (const { countryCode, scores } of data) {
