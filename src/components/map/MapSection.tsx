@@ -21,7 +21,7 @@ const WorldMap = dynamic(() => import("./WorldMap"), {
 
 function parseMode(raw: string | null | undefined): ColorMode {
   if (raw === "2") return 2;
-  if (raw === "6") return 6;
+  if (raw === "8") return 8;
   return 4; // default
 }
 

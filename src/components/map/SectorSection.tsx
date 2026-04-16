@@ -1,33 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import type { Emotion } from "@/lib/emotions";
+import { useMemo, useState } from "react";
+import { computeSectorDominants } from "@/lib/emotions";
+import type { Emotion, SectorDominant } from "@/lib/emotions";
 import type { SectorDataItem } from "@/app/api/sectors/route";
 import { SectorDetailPanel } from "./SectorDetailPanel";
-
-// ── Palette (matches emotions.ts) ──────────────────────────────────────────
-const PALETTE_6: Record<string, string> = {
-  joy: "#FFD166",
-  trust: "#06D6A0",
-  fear: "#A78BFA",
-  anger: "#FF6B6B",
-  sadness: "#4EA8DE",
-  optimism: "#84CC16",
-};
-
-function getDominantEmotion(scores: Record<Emotion, number>): { key: string; color: string } {
-  const candidates: [string, number][] = [
-    ["joy", scores.joy],
-    ["trust", scores.trust],
-    ["fear", scores.fear],
-    ["anger", scores.anger],
-    ["sadness", scores.sadness],
-    ["optimism", scores.optimism],
-  ];
-  candidates.sort((a, b) => b[1] - a[1]);
-  const key = candidates[0]![0];
-  return { key, color: PALETTE_6[key] ?? "#4B5563" };
-}
 
 // ── Sector icons ────────────────────────────────────────────────────────────
 const SECTOR_ICONS: Record<string, string> = {
@@ -44,18 +21,19 @@ const SECTOR_ICONS: Record<string, string> = {
 // ── SectorCard ──────────────────────────────────────────────────────────────
 function SectorCard({
   sector,
+  dominant,
   selected,
   locale,
   onClick,
 }: {
   sector: SectorDataItem;
+  dominant: SectorDominant | null;
   selected: boolean;
   locale: string;
   onClick: () => void;
 }) {
   const name = locale === "ja" ? sector.nameJa : sector.nameEn;
   const icon = SECTOR_ICONS[sector.slug] ?? "📊";
-  const dominant = sector.scores ? getDominantEmotion(sector.scores) : null;
 
   return (
     <button
@@ -116,6 +94,16 @@ type Props = {
 export function SectorSection({ sectorData, locale }: Props) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
+  // Compute cross-sector Z-score dominants once for all sectors
+  const dominantsMap = useMemo(() => {
+    const results = computeSectorDominants(sectorData.map((s) => s.scores));
+    const map = new Map<string, SectorDominant>();
+    results.forEach((r, i) => {
+      if (r) map.set(sectorData[i]!.slug, r);
+    });
+    return map;
+  }, [sectorData]);
+
   // Only show parent sectors in the grid
   const parents = sectorData.filter((s) => s.parentSlug === null);
   const hasAnyData = parents.some((s) => s.scores !== null);
@@ -147,6 +135,7 @@ export function SectorSection({ sectorData, locale }: Props) {
                 <SectorCard
                   key={sector.slug}
                   sector={sector}
+                  dominant={dominantsMap.get(sector.slug) ?? null}
                   selected={selectedSlug === sector.slug}
                   locale={locale}
                   onClick={() => handleSelect(sector.slug)}
@@ -160,6 +149,7 @@ export function SectorSection({ sectorData, locale }: Props) {
               <SectorCard
                 key={sector.slug}
                 sector={sector}
+                dominant={dominantsMap.get(sector.slug) ?? null}
                 selected={selectedSlug === sector.slug}
                 locale={locale}
                 onClick={() => handleSelect(sector.slug)}
@@ -183,6 +173,7 @@ export function SectorSection({ sectorData, locale }: Props) {
           key={selectedSlug}
           sectorSlug={selectedSlug}
           allData={sectorData}
+          dominantsMap={dominantsMap}
           locale={locale}
           onClose={() => setSelectedSlug(null)}
         />

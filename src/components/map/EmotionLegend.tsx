@@ -11,7 +11,7 @@ type Props = {
 const MODES: { value: ColorMode; label: string }[] = [
   { value: 2, label: "2" },
   { value: 4, label: "4" },
-  { value: 6, label: "Detailed" },
+  { value: 8, label: "Detailed" },
 ];
 
 export function EmotionLegend({ colorMode, onModeChange }: Props) {

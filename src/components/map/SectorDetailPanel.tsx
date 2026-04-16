@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Emotion } from "@/lib/emotions";
+import type { Emotion, SectorDominant } from "@/lib/emotions";
 import type { SectorDataItem } from "@/app/api/sectors/route";
 import { useSectorTrend } from "@/hooks/useSectorTrend";
 import { EmotionBarChart } from "./EmotionBarChart";
@@ -10,17 +10,9 @@ import { TrendSparkline } from "./TrendSparkline";
 type Props = {
   sectorSlug: string;
   allData: SectorDataItem[];
+  dominantsMap: Map<string, SectorDominant>;
   locale: string;
   onClose: () => void;
-};
-
-const PALETTE_6: Record<string, string> = {
-  joy: "#FFD166",
-  trust: "#06D6A0",
-  fear: "#A78BFA",
-  anger: "#FF6B6B",
-  sadness: "#4EA8DE",
-  optimism: "#84CC16",
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -99,7 +91,7 @@ function ChildSectorView({
 }
 
 // ── Main panel ─────────────────────────────────────────────────────────────
-export function SectorDetailPanel({ sectorSlug, allData, locale, onClose }: Props) {
+export function SectorDetailPanel({ sectorSlug, allData, dominantsMap, locale, onClose }: Props) {
   const [selectedChildSlug, setSelectedChildSlug] = useState<string | null>(null);
 
   const sector = allData.find((s) => s.slug === sectorSlug);
@@ -213,11 +205,7 @@ export function SectorDetailPanel({ sectorSlug, allData, locale, onClose }: Prop
                 <ul className="flex flex-col gap-1.5">
                   {children.map((child) => {
                     const childName = locale === "ja" ? child.nameJa : child.nameEn;
-                    const dominant = child.scores
-                      ? (Object.entries(child.scores) as [string, number][])
-                          .filter(([k]) => k in PALETTE_6)
-                          .sort((a, b) => b[1] - a[1])[0]
-                      : null;
+                    const dominant = dominantsMap.get(child.slug) ?? null;
                     return (
                       <li key={child.slug}>
                         <button
@@ -229,14 +217,14 @@ export function SectorDetailPanel({ sectorSlug, allData, locale, onClose }: Prop
                             {childName}
                           </span>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {dominant && (
+                            {dominant && child.scores && (
                               <>
                                 <span
                                   className="w-2 h-2 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: PALETTE_6[dominant[0]] ?? "#4B5563" }}
+                                  style={{ backgroundColor: dominant.color }}
                                 />
                                 <span className="text-[10px] font-mono text-[var(--wem-text-muted)] capitalize">
-                                  {dominant[0]} {Math.round(dominant[1] * 100)}
+                                  {dominant.key} {Math.round((child.scores[dominant.key as Emotion] ?? 0) * 100)}
                                 </span>
                               </>
                             )}
