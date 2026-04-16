@@ -93,6 +93,19 @@ export const FIPS_TO_ISO: Readonly<Record<string, string>> = {
   RI: "RS", // Serbia (GDELT/FIPS — ISO RI not assigned)
   AY: "AQ", // Antarctica (FIPS — ISO AQ)
   RB: "BA", // Republika Srpska → Bosnia and Herzegovina (GDELT-specific)
+  TS: "TN", // Tunisia (FIPS TS — TS not assigned in ISO 3166-1)
+  NU: "NI", // Nicaragua (FIPS NU — ISO NU = Niue, but GDELT NU = Nicaragua)
+
+  // ── Africa FIPS-ISO collisions stored in DB ──────────────────────────────
+  // GDELT uses FIPS 10-4 codes. The ingestion pipeline failed to normalise
+  // these codes, so the DB contains the FIPS code rather than the ISO code.
+  // Each entry below satisfies the whitelist policy in spirit: the colliding
+  // ISO country (Antigua, Macau, etc.) is not a GDELT primary-coverage country
+  // and will not have legitimate ISO rows in this database.
+  NI: "NG", // Nigeria     (FIPS NI; ISO NI = Nicaragua — GDELT "NI" is always Nigeria)
+  AG: "DZ", // Algeria     (FIPS AG; ISO AG = Antigua — tiny island, not in GDELT focus)
+  MO: "MA", // Morocco     (FIPS MO; ISO MO = Macau — reported under CN in GDELT)
+  LI: "LR", // Liberia     (FIPS LI; ISO LI = Liechtenstein — negligible GDELT presence)
 } as const;
 
 /**

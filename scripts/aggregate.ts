@@ -140,6 +140,7 @@ const UNKNOWN_CONTINENT = "XX"; // 不明な国コード用
  * but GM = Gambia in ISO — safe to override here because the source is always FIPS).
  */
 const FIPS_COLLISION_OVERRIDES: Record<string, string> = {
+  // ── Already handled (previously known) ───────────────────────────────────
   GM: "DE", // Germany     (FIPS GM; ISO GM = Gambia)
   CH: "CN", // China       (FIPS CH; ISO CH = Switzerland)
   SZ: "CH", // Switzerland (FIPS SZ; ISO SZ = Eswatini)
@@ -147,6 +148,19 @@ const FIPS_COLLISION_OVERRIDES: Record<string, string> = {
   RS: "RU", // Russia      (FIPS RS; ISO RS = Serbia)
   BM: "MM", // Myanmar     (FIPS BM; ISO BM = Bermuda)
   GG: "GE", // Georgia     (FIPS GG; ISO GG = Guernsey)
+
+  // ── Africa — major FIPS-ISO collisions causing missing country data ───────
+  // At ingestion time ALL location codes from GDELT are FIPS 10-4, so every
+  // override here is safe: there is no ambiguity about the source encoding.
+  NI: "NG", // Nigeria     (FIPS NI; ISO NI = Nicaragua)
+  AG: "DZ", // Algeria     (FIPS AG; ISO AG = Antigua)
+  MO: "MA", // Morocco     (FIPS MO; ISO MO = Macau)
+  LI: "LR", // Liberia     (FIPS LI; ISO LI = Liechtenstein)
+  NG: "NE", // Niger       (FIPS NG; ISO NG = Nigeria)
+  GB: "GA", // Gabon       (FIPS GB; ISO GB = United Kingdom — GDELT uses UK for UK)
+  GA: "GM", // Gambia      (FIPS GA; ISO GA = Gabon)
+  TS: "TN", // Tunisia     (FIPS TS; TS not a valid ISO code)
+  NU: "NI", // Nicaragua   (FIPS NU; ISO NU = Niue)
 };
 
 const FIPS_TO_ISO_FULL: Readonly<Record<string, string>> = {
