@@ -181,6 +181,14 @@ function dominantKey4ZScore(
       bestKey = k;
     }
   }
+
+  // If all Z-scores are negative, the country is below average on every emotion group.
+  // Fall back to raw scores so the map color matches the highest raw score shown in the
+  // breakdown panel — avoiding a contradiction like "map shows sadness but sadness = 0".
+  if (bestZ < 0) {
+    return dominantKey4Raw(scores);
+  }
+
   return bestKey;
 }
 
