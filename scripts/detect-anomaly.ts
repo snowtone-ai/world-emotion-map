@@ -57,15 +57,19 @@ const TRIGGER_PRIORITY: Record<string, number> = {
   T5: 1, T3: 2, T1: 3, T2: 4, T4: 5,
 };
 
-const COOLDOWN_HOURS = 2;
+const COOLDOWN_HOURS = 24;
+
+/** Max anomaly posts per 24h period (global, across all triggers) */
+const DAILY_POST_CAP = 1;
 
 // Thresholds (DB stores 0.0–1.0 scale)
-const T1_SPIKE_THRESHOLD = 0.20;
-const T2_FLIP_MIN_MARGIN = 0.05;
-const T3_SYNC_THRESHOLD = 0.15;
-const T3_MIN_COUNTRIES = 5;
-const T4_CRISIS_THRESHOLD = 0.75;
-const T5_MIN_SNAPSHOTS = 24;
+// Tuned for ≤1 firing/day: only truly dramatic shifts should trigger
+const T1_SPIKE_THRESHOLD = 0.40;
+const T2_FLIP_MIN_MARGIN = 0.15;
+const T3_SYNC_THRESHOLD = 0.30;
+const T3_MIN_COUNTRIES = 8;
+const T4_CRISIS_THRESHOLD = 0.90;
+const T5_MIN_SNAPSHOTS = 168; // ~1 week of hourly snapshots
 
 // ──────────────────────────────────────────────
 // Types
@@ -470,7 +474,7 @@ async function main() {
     return;
   }
 
-  // 3. Cooldown check
+  // 3. Cooldown check (per trigger+country, 24h window)
   const cooldowns = await fetchCooldowns();
   const filtered = allCandidates.filter((c) => {
     const key = `${c.trigger_id}|${c.country_code ?? ""}`;
@@ -488,7 +492,27 @@ async function main() {
     return;
   }
 
-  // 4. Insert all into anomaly_posts_log
+  // 3b. Daily cap check — skip posting if already posted today
+  const { count: dailyCount, error: countError } = await supabase
+    .from("anomaly_posts_log")
+    .select("id", { count: "exact", head: true })
+    .gte("fired_at", hoursAgo(24))
+    .not("post_id", "is", null);
+
+  if (countError) {
+    console.error(`[detect-anomaly] Warning: daily cap check failed: ${countError.message}`);
+  }
+
+  const postsToday = dailyCount ?? 0;
+  const capReached = postsToday >= DAILY_POST_CAP;
+
+  if (capReached) {
+    console.error(
+      `[detect-anomaly] Daily cap reached (${postsToday}/${DAILY_POST_CAP}) — logging only, no PENDING`,
+    );
+  }
+
+  // 4. Insert all into anomaly_posts_log (for historical record)
   const rows = filtered.map((c) => ({
     trigger_id: c.trigger_id,
     country_code: c.country_code,
@@ -506,29 +530,33 @@ async function main() {
 
   console.error(`[detect-anomaly] Inserted ${inserted?.length ?? 0} anomaly records`);
 
-  // 5. Mark the highest-priority candidate for posting
-  const ranked = filtered
-    .map((c, i) => ({ ...c, dbId: inserted?.[i]?.id as string }))
-    .sort((a, b) => {
-      const pa = TRIGGER_PRIORITY[a.trigger_id] ?? 99;
-      const pb = TRIGGER_PRIORITY[b.trigger_id] ?? 99;
-      if (pa !== pb) return pa - pb;
-      return b.magnitude - a.magnitude;
-    });
+  // 5. Mark the highest-priority candidate for posting (only if under daily cap)
+  if (capReached) {
+    console.error("[detect-anomaly] Skipping PENDING mark due to daily cap");
+  } else {
+    const ranked = filtered
+      .map((c, i) => ({ ...c, dbId: inserted?.[i]?.id as string }))
+      .sort((a, b) => {
+        const pa = TRIGGER_PRIORITY[a.trigger_id] ?? 99;
+        const pb = TRIGGER_PRIORITY[b.trigger_id] ?? 99;
+        if (pa !== pb) return pa - pb;
+        return b.magnitude - a.magnitude;
+      });
 
-  const top = ranked[0];
-  if (top?.dbId) {
-    const { error: updateError } = await supabase
-      .from("anomaly_posts_log")
-      .update({ post_id: "PENDING" })
-      .eq("id", top.dbId);
+    const top = ranked[0];
+    if (top?.dbId) {
+      const { error: updateError } = await supabase
+        .from("anomaly_posts_log")
+        .update({ post_id: "PENDING" })
+        .eq("id", top.dbId);
 
-    if (updateError) {
-      console.error(`[detect-anomaly] Failed to mark PENDING: ${updateError.message}`);
-    } else {
-      console.error(
-        `[detect-anomaly] ★ Marked for posting: ${top.trigger_id} | ${top.country_code ?? "GLOBAL"} | ${top.description}`,
-      );
+      if (updateError) {
+        console.error(`[detect-anomaly] Failed to mark PENDING: ${updateError.message}`);
+      } else {
+        console.error(
+          `[detect-anomaly] ★ Marked for posting: ${top.trigger_id} | ${top.country_code ?? "GLOBAL"} | ${top.description}`,
+        );
+      }
     }
   }
 

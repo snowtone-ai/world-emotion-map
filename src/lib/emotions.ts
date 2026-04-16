@@ -102,7 +102,10 @@ function dominantKey2(scores: Record<Emotion, number>): string {
   return positive >= negative ? "positive" : "negative";
 }
 
-function dominantKey4(scores: Record<Emotion, number>): string {
+/**
+ * Mode-4 grouping (raw scores — used as fallback when z-scores unavailable).
+ */
+function dominantKey4Raw(scores: Record<Emotion, number>): string {
   const joyGroup = Math.max(scores.joy, scores.trust, scores.optimism);
   const fearGroup = Math.max(scores.fear, scores.uncertainty);
   const angerScore = scores.anger;
@@ -113,6 +116,72 @@ function dominantKey4(scores: Record<Emotion, number>): string {
   if (best === fearGroup) return "fear";
   if (best === angerScore) return "anger";
   return "sadness";
+}
+
+/**
+ * Mode-4 grouping with z-score normalization.
+ * Each group score is compared against the cross-country mean/stddev for that group,
+ * so structurally higher-scoring emotions (e.g. joy) don't dominate by default.
+ */
+type GroupStats = { mean: number; std: number };
+
+function computeMode4GroupScores(scores: Record<Emotion, number>): {
+  joy: number;
+  fear: number;
+  anger: number;
+  sadness: number;
+} {
+  return {
+    joy: Math.max(scores.joy, scores.trust, scores.optimism),
+    fear: Math.max(scores.fear, scores.uncertainty),
+    anger: scores.anger,
+    sadness: scores.sadness,
+  };
+}
+
+function computeMode4Stats(
+  data: CountryEmotionRaw[],
+): Record<"joy" | "fear" | "anger" | "sadness", GroupStats> {
+  const groups = ["joy", "fear", "anger", "sadness"] as const;
+  const sums: Record<string, number> = { joy: 0, fear: 0, anger: 0, sadness: 0 };
+  const sqSums: Record<string, number> = { joy: 0, fear: 0, anger: 0, sadness: 0 };
+  const n = data.length;
+
+  for (const { scores } of data) {
+    const g = computeMode4GroupScores(scores);
+    for (const k of groups) {
+      sums[k] += g[k];
+      sqSums[k] += g[k] * g[k];
+    }
+  }
+
+  const result = {} as Record<"joy" | "fear" | "anger" | "sadness", GroupStats>;
+  for (const k of groups) {
+    const mean = n > 0 ? sums[k] / n : 0;
+    const variance = n > 1 ? sqSums[k] / n - mean * mean : 0;
+    result[k] = { mean, std: Math.sqrt(Math.max(0, variance)) };
+  }
+  return result;
+}
+
+function dominantKey4ZScore(
+  scores: Record<Emotion, number>,
+  stats: Record<"joy" | "fear" | "anger" | "sadness", GroupStats>,
+): string {
+  const g = computeMode4GroupScores(scores);
+  const groups = ["joy", "fear", "anger", "sadness"] as const;
+
+  let bestKey: string = "joy";
+  let bestZ = -Infinity;
+
+  for (const k of groups) {
+    const z = stats[k].std > 0 ? (g[k] - stats[k].mean) / stats[k].std : 0;
+    if (z > bestZ) {
+      bestZ = z;
+      bestKey = k;
+    }
+  }
+  return bestKey;
 }
 
 function dominantKey6(scores: Record<Emotion, number>): string {
@@ -130,13 +199,18 @@ function dominantKey6(scores: Record<Emotion, number>): string {
 
 /**
  * Converts raw score data to a country → fill-color map for Mapbox.
+ * Mode 4 uses z-score normalization across all countries so that
+ * structurally higher-scoring emotions don't dominate the map.
  * Called client-side; O(n) per mode switch.
  */
 export function computeColorMap(
   data: CountryEmotionRaw[],
-  mode: ColorMode
+  mode: ColorMode,
 ): Record<string, string> {
   const map: Record<string, string> = {};
+
+  // Pre-compute cross-country stats for mode 4 z-score normalization
+  const mode4Stats = mode === 4 ? computeMode4Stats(data) : null;
 
   for (const { countryCode, scores } of data) {
     let key: string;
@@ -148,7 +222,10 @@ export function computeColorMap(
         palette = PALETTE_2;
         break;
       case 4:
-        key = dominantKey4(scores);
+        key =
+          mode4Stats && data.length >= 5
+            ? dominantKey4ZScore(scores, mode4Stats)
+            : dominantKey4Raw(scores);
         palette = PALETTE_4;
         break;
       case 6:
