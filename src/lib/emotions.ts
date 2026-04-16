@@ -9,8 +9,9 @@
  * Normalization strategy per mode:
  *   Mode 2 — within-country share Z-score: positive/(pos+neg) share vs global
  *             average. Removes absolute coverage-volume bias; gives ~50/50 split.
- *   Mode 4 — cross-country Z-score on group raw scores + raw fallback when all
- *             Z-scores are negative (preserves map/panel consistency).
+ *   Mode 4 — within-country share Z-score: each group / (joy+fear+anger+sadness)
+ *             share vs global average. Near-zero groups have very low shares,
+ *             so map/panel consistency is preserved without a raw fallback.
  *   Mode 6 — within-country share Z-score: each emotion / sum-of-6 vs global
  *             average share. Removes structural joy dominance; always returns
  *             the emotion with the most unusually high share (no raw fallback).
@@ -203,27 +204,33 @@ function dominantKey4Raw(scores: Record<Emotion, number>): string {
   return "sadness";
 }
 
+/**
+ * Share-based Z-score for mode 4.
+ * Computes each group's share = group / (joy+fear+anger+sadness), then
+ * Z-scores against the global distribution of group shares.
+ * Eliminates absolute-coverage-volume bias. Near-zero groups have very low
+ * shares, so share-based Z-score naturally avoids the map/panel contradiction
+ * (e.g. sadness share ≈ 0 → very negative Z → never wins). No raw fallback needed.
+ */
 function dominantKey4ZScore(
   scores: Record<Emotion, number>,
   stats: Record<"joy" | "fear" | "anger" | "sadness", GroupStats>,
 ): string {
   const g = computeMode4GroupScores(scores);
+  const total = g.joy + g.fear + g.anger + g.sadness;
   const groups = ["joy", "fear", "anger", "sadness"] as const;
 
   let bestKey: string = "joy";
   let bestZ = -Infinity;
 
   for (const k of groups) {
-    const z = zScore(g[k], stats[k]);
+    const share = total > 0 ? g[k] / total : 0.25;
+    // stats[k] holds the distribution of this group's share across countries
+    const z = zScore(share, stats[k]);
     if (z > bestZ) {
       bestZ = z;
       bestKey = k;
     }
-  }
-
-  // All Z-scores negative → fall back to raw so color matches breakdown panel
-  if (bestZ < 0) {
-    return dominantKey4Raw(scores);
   }
 
   return bestKey;
@@ -288,8 +295,8 @@ function dominantKey6ZScore(
  * Normalization strategy per mode:
  *   - Mode 2: Z-score of positive SHARE = positive/(pos+neg) vs global mean share.
  *             ~50% positive / ~50% negative regardless of absolute GCAM levels.
- *   - Mode 4: Z-score of raw group scores; raw fallback when all Z < 0
- *             (preserves map/panel consistency for the 4-quadrant view).
+ *   - Mode 4: Z-score of group SHARE = group/(joy+fear+anger+sadness) vs global
+ *             mean share. Near-zero groups have near-zero shares → won't win.
  *   - Mode 6: Z-score of within-country emotion SHARE = emotion/sum-of-6 vs
  *             global mean share per emotion. Removes GCAM joy-dominance bias;
  *             always returns the most unusually high-share emotion.
@@ -303,8 +310,8 @@ export function computeColorMap(
   const map: Record<string, string> = {};
   const enoughData = data.length >= 5;
 
-  // Pre-compute cross-country stats per mode
-  // Mode 2 & 6 use within-country share normalization to remove absolute
+  // Pre-compute cross-country stats per mode.
+  // All three modes use within-country share normalization to remove absolute
   // coverage-volume bias (high-news countries score high on all emotions).
   const mode2Stats =
     mode === 2 && enoughData
@@ -319,11 +326,11 @@ export function computeColorMap(
 
   const mode4Stats =
     mode === 4 && enoughData
-      ? buildStats(
-          data,
-          ["joy", "fear", "anger", "sadness"] as const,
-          (s, k) => computeMode4GroupScores(s)[k],
-        )
+      ? buildStats(data, ["joy", "fear", "anger", "sadness"] as const, (s, k) => {
+          const g = computeMode4GroupScores(s);
+          const total = g.joy + g.fear + g.anger + g.sadness;
+          return total > 0 ? g[k] / total : 0.25;
+        })
       : null;
 
   const mode6Stats =
