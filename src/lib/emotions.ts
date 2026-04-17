@@ -10,30 +10,30 @@
  *
  *   For each candidate emotion (or group) e, we compute:
  *
- *       share(e)       = score(e) / Σ score           // within-country share
+ *       share(e)       = score(e) / Σ score                // within-country share
  *       mean_share(e)  = mean over countries of share(e)
- *       dominance(e)   = share(e)² / mean_share(e)    // "lift-weighted share"
+ *       excess_lift(e) = max(0, share(e) / mean_share(e) − 1) // above-baseline lift only
+ *       dominance(e)   = share(e) × excess_lift(e)
  *
  *   The winner is argmax_e dominance(e).
- *
- *   This is equivalent to  share(e) × (share(e) / mean_share(e))
- *                        =  share × lift.
  *
  * ── Why this works ────────────────────────────────────────────────────────
  *
  *   • share(e) = 0  ⇒  dominance = 0.  An emotion the country shows 0 of
- *     can NEVER win. This is the invariant the old Z-score design broke:
- *     Z-score could hand victory to a near-zero emotion whose global mean
- *     was also near zero, producing the Japan-is-Sadness contradiction.
+ *     can NEVER win. Map colour and breakdown panel can never contradict.
  *
- *   • Dividing by mean_share removes GCAM's structural joy dominance
- *     (joy has a high global baseline; a country at baseline gets no credit).
- *     Low-baseline emotions (sadness, fear) get their deserved amplification
- *     when they actually appear.
+ *   • excess_lift = 0 when share ≤ mean: an emotion at or below its global
+ *     baseline contributes nothing. This eliminates GCAM's structural joy
+ *     dominance — countries where joy is merely "average" show their
+ *     actually-elevated emotion instead (e.g., Iran → fear, not joy).
  *
- *   • Multiplying by share keeps raw magnitude in the picture, so the map
- *     agrees with the breakdown panel: a country whose single largest bar
- *     is Joy=9, Sadness=0 cannot be painted blue.
+ *   • Countries genuinely above baseline in joy still show joy: a country
+ *     with joy share well above the global mean gets a large excess_lift,
+ *     so truly happy countries are not erased.
+ *
+ *   • share × excess_lift keeps raw magnitude in the picture (noise
+ *     protection): a trace emotion at 10× baseline but 0.1% share loses
+ *     to a moderate emotion at 2× baseline with 8% share.
  *
  *   • No standard deviation, no fallbacks, no special cases. One formula.
  *
@@ -205,7 +205,9 @@ function pickDominant<K extends string>(
     // emotion also has dominance 0. Either way it cannot win over any
     // positive-share, positive-mean candidate.
     const mean = means[k];
-    const dominance = mean > 0 ? (share * share) / mean : 0;
+    // share × max(0, lift − 1): only above-baseline share earns dominance.
+    // Guarantees share=0 → dominance=0 AND baseline joy cannot beat elevated fear/sadness.
+    const dominance = mean > 0 ? share * Math.max(0, share / mean - 1) : 0;
 
     if (
       dominance > bestScore ||
