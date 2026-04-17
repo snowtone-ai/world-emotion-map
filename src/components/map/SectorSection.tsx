@@ -94,7 +94,7 @@ type Props = {
 export function SectorSection({ sectorData, locale }: Props) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
-  // Compute cross-sector Z-score dominants once for all sectors
+  // Compute cross-sector dominants (share × lift) once for all sectors
   const dominantsMap = useMemo(() => {
     const results = computeSectorDominants(sectorData.map((s) => s.scores));
     const map = new Map<string, SectorDominant>();

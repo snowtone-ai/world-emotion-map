@@ -1,20 +1,44 @@
 /**
- * Color mode logic for World Emotion Map.
+ * Dominant-emotion selection for World Emotion Map.
  *
- * Three display modes for progressive disclosure:
- *   2 — Positive / Negative (instant gestalt)
- *   4 — Quadrant (joy cluster, fear cluster, anger, sadness)
- *   8 — Full Spectrum (all 8 emotions individually)
+ * Three display modes:
+ *   2 — Positive / Negative
+ *   4 — Quadrant  (joy-cluster / fear-cluster / anger / sadness)
+ *   8 — Full spectrum (all 8 GCAM emotions)
  *
- * Normalization strategy per mode:
- *   Mode 2 — within-country share Z-score: positive/(pos+neg) share vs global
- *             average. Removes absolute coverage-volume bias; gives ~50/50 split.
- *   Mode 4 — within-country share Z-score: each group / (joy+fear+anger+sadness)
- *             share vs global average. Near-zero groups have very low shares,
- *             so map/panel consistency is preserved without a raw fallback.
- *   Mode 8 — within-country share Z-score: each emotion / sum-of-8 vs global
- *             average share. Removes structural joy dominance; always returns
- *             the emotion with the most unusually high share (no raw fallback).
+ * ── The scoring rule (same for every mode) ────────────────────────────────
+ *
+ *   For each candidate emotion (or group) e, we compute:
+ *
+ *       share(e)       = score(e) / Σ score           // within-country share
+ *       mean_share(e)  = mean over countries of share(e)
+ *       dominance(e)   = share(e)² / mean_share(e)    // "lift-weighted share"
+ *
+ *   The winner is argmax_e dominance(e).
+ *
+ *   This is equivalent to  share(e) × (share(e) / mean_share(e))
+ *                        =  share × lift.
+ *
+ * ── Why this works ────────────────────────────────────────────────────────
+ *
+ *   • share(e) = 0  ⇒  dominance = 0.  An emotion the country shows 0 of
+ *     can NEVER win. This is the invariant the old Z-score design broke:
+ *     Z-score could hand victory to a near-zero emotion whose global mean
+ *     was also near zero, producing the Japan-is-Sadness contradiction.
+ *
+ *   • Dividing by mean_share removes GCAM's structural joy dominance
+ *     (joy has a high global baseline; a country at baseline gets no credit).
+ *     Low-baseline emotions (sadness, fear) get their deserved amplification
+ *     when they actually appear.
+ *
+ *   • Multiplying by share keeps raw magnitude in the picture, so the map
+ *     agrees with the breakdown panel: a country whose single largest bar
+ *     is Joy=9, Sadness=0 cannot be painted blue.
+ *
+ *   • No standard deviation, no fallbacks, no special cases. One formula.
+ *
+ * Fallback: when fewer than 5 countries have data, we cannot estimate
+ * a meaningful global mean, so we return the raw within-country argmax.
  */
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -40,7 +64,7 @@ export type CountryEmotionRaw = {
 
 /**
  * Mode 2: Positive vs Negative
- * Positive = joy + trust + optimism + surprise (news-context surprise skews positive)
+ * Positive = joy + trust + optimism + surprise
  * Negative = fear + anger + sadness + uncertainty
  */
 const PALETTE_2: Record<string, string> = {
@@ -54,19 +78,15 @@ const PALETTE_2: Record<string, string> = {
  * Fear group = max(fear, uncertainty)
  * Anger      = solo
  * Sadness    = solo
- * (surprise excluded — absorbed into Joy group context)
  */
 const PALETTE_4: Record<string, string> = {
-  joy: "#FFD166", // Amber — joy/trust/optimism cluster
-  fear: "#A78BFA", // Violet — fear/uncertainty cluster
+  joy: "#FFD166", // Amber
+  fear: "#A78BFA", // Violet
   anger: "#FF6B6B", // Coral
   sadness: "#4EA8DE", // Sky Blue
 };
 
-/**
- * Mode 8: Full Spectrum (all 8 emotions)
- * Shows all 8 GCAM emotions individually for maximum detail.
- */
+/** Mode 8: all 8 GCAM emotions. */
 const PALETTE_8: Record<string, string> = {
   joy: "#FFD166", // Amber
   trust: "#06D6A0", // Teal
@@ -105,182 +125,94 @@ export const LEGEND: Record<ColorMode, LegendEntry[]> = {
   ],
 };
 
-// ── Shared stats type ──────────────────────────────────────────────────────
+// ── Score extractors ───────────────────────────────────────────────────────
 
-type GroupStats = { mean: number; std: number };
-
-function buildStats<K extends string>(
-  data: { scores: Record<Emotion, number> }[],
-  keys: readonly K[],
-  extract: (scores: Record<Emotion, number>, k: K) => number,
-): Record<K, GroupStats> {
-  const sums = Object.fromEntries(keys.map((k) => [k, 0])) as Record<K, number>;
-  const sqSums = Object.fromEntries(keys.map((k) => [k, 0])) as Record<K, number>;
-  const n = data.length;
-
-  for (const { scores } of data) {
-    for (const k of keys) {
-      const v = extract(scores, k);
-      sums[k] += v;
-      sqSums[k] += v * v;
-    }
-  }
-
-  const result = {} as Record<K, GroupStats>;
-  for (const k of keys) {
-    const mean = n > 0 ? sums[k] / n : 0;
-    const variance = n > 1 ? sqSums[k] / n - mean * mean : 0;
-    result[k] = { mean, std: Math.sqrt(Math.max(0, variance)) };
-  }
-  return result;
+function positiveScore(s: Record<Emotion, number>): number {
+  return s.joy + s.trust + s.optimism + s.surprise;
 }
 
-function zScore(value: number, stats: GroupStats): number {
-  return stats.std > 0 ? (value - stats.mean) / stats.std : 0;
+function negativeScore(s: Record<Emotion, number>): number {
+  return s.fear + s.anger + s.sadness + s.uncertainty;
 }
 
-// ── Mode 2: Positive / Negative ────────────────────────────────────────────
-
-function positiveScore(scores: Record<Emotion, number>): number {
-  return scores.joy + scores.trust + scores.optimism + scores.surprise;
-}
-
-function negativeScore(scores: Record<Emotion, number>): number {
-  return scores.fear + scores.anger + scores.sadness + scores.uncertainty;
-}
-
-/** Raw fallback: simple sum comparison. */
-function dominantKey2(scores: Record<Emotion, number>): string {
-  return positiveScore(scores) >= negativeScore(scores) ? "positive" : "negative";
-}
-
-/**
- * Share-based Z-score for mode 2.
- * Computes positive_share = positive / (positive + negative), then compares
- * Z-score of that share against the global distribution of positive shares.
- * Since positive_share + negative_share = 1, a single Z-score suffices:
- * positive wins when positive_share is above the global mean (Z ≥ 0).
- * Eliminates absolute-coverage-volume bias that caused all-positive maps.
- */
-function dominantKey2ZScore(
-  scores: Record<Emotion, number>,
-  stats: Record<"positive" | "negative", GroupStats>,
-): string {
-  const pScore = positiveScore(scores);
-  const nScore = negativeScore(scores);
-  const total = pScore + nScore;
-  if (total === 0) return "positive";
-
-  const pShare = pScore / total;
-  // stats.positive now holds the distribution of positive shares (not raw scores)
-  const pZ = zScore(pShare, stats.positive);
-  return pZ >= 0 ? "positive" : "negative";
-}
-
-// ── Mode 4: Quadrant ───────────────────────────────────────────────────────
-
-function computeMode4GroupScores(scores: Record<Emotion, number>): {
+function mode4Groups(s: Record<Emotion, number>): {
   joy: number;
   fear: number;
   anger: number;
   sadness: number;
 } {
   return {
-    joy: Math.max(scores.joy, scores.trust, scores.optimism),
-    fear: Math.max(scores.fear, scores.uncertainty),
-    anger: scores.anger,
-    sadness: scores.sadness,
+    joy: Math.max(s.joy, s.trust, s.optimism),
+    fear: Math.max(s.fear, s.uncertainty),
+    anger: s.anger,
+    sadness: s.sadness,
   };
 }
-
-/** Raw fallback for mode 4. */
-function dominantKey4Raw(scores: Record<Emotion, number>): string {
-  const joyGroup = Math.max(scores.joy, scores.trust, scores.optimism);
-  const fearGroup = Math.max(scores.fear, scores.uncertainty);
-  const angerScore = scores.anger;
-  const sadnessScore = scores.sadness;
-
-  const best = Math.max(joyGroup, fearGroup, angerScore, sadnessScore);
-  if (best === joyGroup) return "joy";
-  if (best === fearGroup) return "fear";
-  if (best === angerScore) return "anger";
-  return "sadness";
-}
-
-/**
- * Share-based Z-score for mode 4.
- * Computes each group's share = group / (joy+fear+anger+sadness), then
- * Z-scores against the global distribution of group shares.
- * Eliminates absolute-coverage-volume bias. Near-zero groups have very low
- * shares, so share-based Z-score naturally avoids the map/panel contradiction
- * (e.g. sadness share ≈ 0 → very negative Z → never wins). No raw fallback needed.
- */
-function dominantKey4ZScore(
-  scores: Record<Emotion, number>,
-  stats: Record<"joy" | "fear" | "anger" | "sadness", GroupStats>,
-): string {
-  const g = computeMode4GroupScores(scores);
-  const total = g.joy + g.fear + g.anger + g.sadness;
-  const groups = ["joy", "fear", "anger", "sadness"] as const;
-
-  let bestKey: string = "joy";
-  let bestZ = -Infinity;
-
-  for (const k of groups) {
-    const share = total > 0 ? g[k] / total : 0.25;
-    // stats[k] holds the distribution of this group's share across countries
-    const z = zScore(share, stats[k]);
-    if (z > bestZ) {
-      bestZ = z;
-      bestKey = k;
-    }
-  }
-
-  return bestKey;
-}
-
-// ── Mode 8: Full Spectrum ──────────────────────────────────────────────────
 
 const MODE8_KEYS: readonly Emotion[] = [
   "joy", "trust", "fear", "anger", "sadness", "surprise", "optimism", "uncertainty",
 ] as const;
 
-/** Raw fallback for mode 8. */
-function dominantKey8(scores: Record<Emotion, number>): string {
-  let bestKey: Emotion = "joy";
-  let bestVal = -1;
-  for (const k of MODE8_KEYS) {
-    if (scores[k] > bestVal) {
-      bestVal = scores[k];
-      bestKey = k;
-    }
-  }
-  return bestKey;
-}
+// ── Core: within-country shares, cross-country mean, lift² selection ───────
 
 /**
- * Share-based Z-score for mode 8.
- * For each country, computes each emotion's share = score / sum_of_8_emotions,
- * then Z-scores that share against the global distribution of per-emotion shares.
- * This eliminates: (a) absolute coverage-volume bias (high-news countries have
- * high everything) and (b) structural GCAM joy dominance.
- * Always returns the emotion with the most unusually high share — no raw fallback
- * needed since share-based scoring is already distribution-neutral.
+ * Given per-country scores for a set of keys, return the mean of each key's
+ * within-country SHARE across all countries. Countries with Σ score = 0 are
+ * skipped (they contribute no signal).
  */
-function dominantKey8ZScore(
+function meanShares<K extends string>(
+  data: { scores: Record<Emotion, number> }[],
+  keys: readonly K[],
+  extract: (s: Record<Emotion, number>, k: K) => number,
+): Record<K, number> {
+  const sums = Object.fromEntries(keys.map((k) => [k, 0])) as Record<K, number>;
+  let n = 0;
+  for (const { scores } of data) {
+    const total = keys.reduce((acc, k) => acc + extract(scores, k), 0);
+    if (total <= 0) continue;
+    for (const k of keys) sums[k] += extract(scores, k) / total;
+    n += 1;
+  }
+  const out = {} as Record<K, number>;
+  for (const k of keys) out[k] = n > 0 ? sums[k] / n : 0;
+  return out;
+}
+
+/**
+ * Pick the winning key by maximising `share² / mean_share`.
+ * Ties are broken by raw share (so the visually larger bar wins).
+ *
+ * If every candidate has share = 0 (no data), returns `defaultKey`.
+ */
+function pickDominant<K extends string>(
   scores: Record<Emotion, number>,
-  stats: Record<Emotion, GroupStats>,
-): string {
-  const total = MODE8_KEYS.reduce((sum, k) => sum + scores[k], 0);
+  keys: readonly K[],
+  extract: (s: Record<Emotion, number>, k: K) => number,
+  means: Record<K, number>,
+  defaultKey: K,
+): K {
+  const total = keys.reduce((acc, k) => acc + extract(scores, k), 0);
+  if (total <= 0) return defaultKey;
 
-  let bestKey: string = "joy";
-  let bestZ = -Infinity;
+  let bestKey: K = defaultKey;
+  let bestScore = -Infinity;
+  let bestShare = -Infinity;
 
-  for (const k of MODE8_KEYS) {
-    const share = total > 0 ? scores[k] / total : 1 / MODE8_KEYS.length;
-    const z = zScore(share, stats[k]);
-    if (z > bestZ) {
-      bestZ = z;
+  for (const k of keys) {
+    const share = extract(scores, k) / total;
+    // Guard: if an emotion never appears globally (mean=0) we cannot
+    // compute a meaningful lift, so treat its dominance as 0. A zero-share
+    // emotion also has dominance 0. Either way it cannot win over any
+    // positive-share, positive-mean candidate.
+    const mean = means[k];
+    const dominance = mean > 0 ? (share * share) / mean : 0;
+
+    if (
+      dominance > bestScore ||
+      (dominance === bestScore && share > bestShare)
+    ) {
+      bestScore = dominance;
+      bestShare = share;
       bestKey = k;
     }
   }
@@ -288,21 +220,30 @@ function dominantKey8ZScore(
   return bestKey;
 }
 
-// ── Color computation ──────────────────────────────────────────────────────
+/** Raw-max fallback when we don't have enough countries for global stats. */
+function pickRawMax<K extends string>(
+  scores: Record<Emotion, number>,
+  keys: readonly K[],
+  extract: (s: Record<Emotion, number>, k: K) => number,
+  defaultKey: K,
+): K {
+  let bestKey: K = defaultKey;
+  let bestVal = -Infinity;
+  for (const k of keys) {
+    const v = extract(scores, k);
+    if (v > bestVal) {
+      bestVal = v;
+      bestKey = k;
+    }
+  }
+  return bestVal > 0 ? bestKey : defaultKey;
+}
+
+// ── Public: colour map builder ─────────────────────────────────────────────
 
 /**
- * Converts raw score data to a country → fill-color map for Mapbox.
- *
- * Normalization strategy per mode:
- *   - Mode 2: Z-score of positive SHARE = positive/(pos+neg) vs global mean share.
- *             ~50% positive / ~50% negative regardless of absolute GCAM levels.
- *   - Mode 4: Z-score of group SHARE = group/(joy+fear+anger+sadness) vs global
- *             mean share. Near-zero groups have near-zero shares → won't win.
- *   - Mode 8: Z-score of within-country emotion SHARE = emotion/sum-of-8 vs
- *             global mean share per emotion. Removes GCAM joy-dominance bias;
- *             always returns the most unusually high-share emotion.
- *
- * Called client-side; O(n) per mode switch.
+ * Converts raw per-country emotion scores into a country → fill-colour map.
+ * See the module header for the dominance rule. O(n·keys) per mode switch.
  */
 export function computeColorMap(
   data: CountryEmotionRaw[],
@@ -311,77 +252,64 @@ export function computeColorMap(
   const map: Record<string, string> = {};
   const enoughData = data.length >= 5;
 
-  // Pre-compute cross-country stats per mode.
-  // All three modes use within-country share normalization to remove absolute
-  // coverage-volume bias (high-news countries score high on all emotions).
-  const mode2Stats =
-    mode === 2 && enoughData
-      ? buildStats(data, ["positive", "negative"] as const, (s, k) => {
-          const pScore = positiveScore(s);
-          const nScore = negativeScore(s);
-          const total = pScore + nScore;
-          if (total === 0) return 0.5;
-          return k === "positive" ? pScore / total : nScore / total;
-        })
-      : null;
+  // ── Mode 2 ────────────────────────────────────────────────────────────
+  if (mode === 2) {
+    const keys = ["positive", "negative"] as const;
+    const extract = (s: Record<Emotion, number>, k: (typeof keys)[number]) =>
+      k === "positive" ? positiveScore(s) : negativeScore(s);
 
-  const mode4Stats =
-    mode === 4 && enoughData
-      ? buildStats(data, ["joy", "fear", "anger", "sadness"] as const, (s, k) => {
-          const g = computeMode4GroupScores(s);
-          const total = g.joy + g.fear + g.anger + g.sadness;
-          return total > 0 ? g[k] / total : 0.25;
-        })
-      : null;
+    const means = enoughData ? meanShares(data, keys, extract) : null;
 
-  const mode8Stats =
-    mode === 8 && enoughData
-      ? buildStats(data, MODE8_KEYS, (s, k) => {
-          const total = MODE8_KEYS.reduce((sum, key) => sum + s[key], 0);
-          return total > 0 ? s[k] / total : 1 / MODE8_KEYS.length;
-        })
-      : null;
-
-  for (const { countryCode, scores } of data) {
-    let key: string;
-    let palette: Record<string, string>;
-
-    switch (mode) {
-      case 2:
-        key = mode2Stats
-          ? dominantKey2ZScore(scores, mode2Stats)
-          : dominantKey2(scores);
-        palette = PALETTE_2;
-        break;
-      case 4:
-        key = mode4Stats
-          ? dominantKey4ZScore(scores, mode4Stats)
-          : dominantKey4Raw(scores);
-        palette = PALETTE_4;
-        break;
-      case 8:
-      default:
-        key = mode8Stats
-          ? dominantKey8ZScore(scores, mode8Stats)
-          : dominantKey8(scores);
-        palette = PALETTE_8;
-        break;
+    for (const { countryCode, scores } of data) {
+      const key = means
+        ? pickDominant(scores, keys, extract, means, "positive")
+        : pickRawMax(scores, keys, extract, "positive");
+      map[countryCode] = PALETTE_2[key] ?? "#1a1a2e";
     }
-
-    map[countryCode] = palette[key] ?? "#1a1a2e";
+    return map;
   }
 
+  // ── Mode 4 ────────────────────────────────────────────────────────────
+  if (mode === 4) {
+    const keys = ["joy", "fear", "anger", "sadness"] as const;
+    const extract = (s: Record<Emotion, number>, k: (typeof keys)[number]) =>
+      mode4Groups(s)[k];
+
+    const means = enoughData ? meanShares(data, keys, extract) : null;
+
+    for (const { countryCode, scores } of data) {
+      const key = means
+        ? pickDominant(scores, keys, extract, means, "joy")
+        : pickRawMax(scores, keys, extract, "joy");
+      map[countryCode] = PALETTE_4[key] ?? "#1a1a2e";
+    }
+    return map;
+  }
+
+  // ── Mode 8 ────────────────────────────────────────────────────────────
+  const keys = MODE8_KEYS;
+  const extract = (s: Record<Emotion, number>, k: Emotion) => s[k];
+
+  const means = enoughData ? meanShares(data, keys, extract) : null;
+
+  for (const { countryCode, scores } of data) {
+    const key = means
+      ? pickDominant(scores, keys, extract, means, "joy")
+      : pickRawMax(scores, keys, extract, "joy");
+    map[countryCode] = PALETTE_8[key] ?? "#1a1a2e";
+  }
   return map;
 }
 
-// ── Sector dominant emotion (cross-sector Z-score) ────────────────────────
+// ── Sector dominant emotion (cross-sector, same rule) ──────────────────────
 
 export type SectorDominant = { key: Emotion; color: string };
 
 /**
- * Compute dominant emotion for each sector using cross-sector share Z-score.
- * Same normalization approach as the map: within-entity share + cross-entity Z-score.
- * Uses all 8 emotions. Falls back to raw max when fewer than 3 sectors have data.
+ * Compute the dominant emotion of each sector using the same dominance rule
+ * as the map (share² / mean_share), this time with means taken across
+ * sectors rather than countries. Falls back to raw argmax when fewer than 3
+ * sectors have data.
  */
 export function computeSectorDominants(
   scoresArray: (Record<Emotion, number> | null)[],
@@ -390,45 +318,23 @@ export function computeSectorDominants(
     (s): s is Record<Emotion, number> => s !== null,
   );
 
-  // Not enough data for meaningful Z-score — use raw max
+  const keys = MODE8_KEYS;
+  const extract = (s: Record<Emotion, number>, k: Emotion) => s[k];
+
   if (valid.length < 3) {
     return scoresArray.map((scores) => {
       if (!scores) return null;
-      let bestKey: Emotion = "joy";
-      let bestVal = -1;
-      for (const k of MODE8_KEYS) {
-        if (scores[k] > bestVal) {
-          bestVal = scores[k];
-          bestKey = k;
-        }
-      }
-      return { key: bestKey, color: PALETTE_8[bestKey] };
+      const key = pickRawMax(scores, keys, extract, "joy");
+      return { key, color: PALETTE_8[key] };
     });
   }
 
-  // Build cross-sector share stats (wrap as {scores} for buildStats)
   const wrapped = valid.map((scores) => ({ scores }));
-  const stats = buildStats(wrapped, MODE8_KEYS, (s, k) => {
-    const total = MODE8_KEYS.reduce((sum, e) => sum + s[e], 0);
-    return total > 0 ? s[k] / total : 1 / MODE8_KEYS.length;
-  });
+  const means = meanShares(wrapped, keys, extract);
 
   return scoresArray.map((scores) => {
     if (!scores) return null;
-    const total = MODE8_KEYS.reduce((sum, k) => sum + scores[k], 0);
-
-    let bestKey: Emotion = "joy";
-    let bestZ = -Infinity;
-
-    for (const k of MODE8_KEYS) {
-      const share = total > 0 ? scores[k] / total : 1 / MODE8_KEYS.length;
-      const z = zScore(share, stats[k]);
-      if (z > bestZ) {
-        bestZ = z;
-        bestKey = k;
-      }
-    }
-
-    return { key: bestKey, color: PALETTE_8[bestKey] };
+    const key = pickDominant(scores, keys, extract, means, "joy");
+    return { key, color: PALETTE_8[key] };
   });
 }
