@@ -56,19 +56,13 @@ jobs:
           (github.event_name == 'workflow_dispatch' && inputs.skip_pipeline != true)
         run: pnpm tsx scripts/fetch-gdelt.ts | pnpm tsx scripts/aggregate.ts
 
-      # ── Anomaly detection (every hour) ─────────────────────
-      - name: Detect Anomalies
-        if: |
-          (github.event_name == 'schedule' && github.event.schedule == '5 * * * *') ||
-          (github.event_name == 'workflow_dispatch' && inputs.skip_anomaly != true)
-        run: pnpm tsx --env-file /dev/null scripts/detect-anomaly.ts
+      # ── Anomaly detection (DISABLED) ────────────────────────
+      # - name: Detect Anomalies
+      #   run: pnpm tsx --env-file /dev/null scripts/detect-anomaly.ts
 
-      # ── X: post anomaly if PENDING (every hour, after detection) ──
-      - name: Post Anomaly to X
-        if: |
-          (github.event_name == 'schedule' && github.event.schedule == '5 * * * *') ||
-          (github.event_name == 'workflow_dispatch' && inputs.post_mode == 'anomaly')
-        run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode anomaly
+      # ── X: post anomaly if PENDING (DISABLED) ───────────────
+      # - name: Post Anomaly to X
+      #   run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode anomaly
 
       # ── X: scheduled 12h post ───────────────────────────────
       - name: Post Scheduled Update to X
