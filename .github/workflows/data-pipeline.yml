@@ -64,9 +64,6 @@ jobs:
       # - name: Post Anomaly to X
       #   run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode anomaly
 
-      # ── X: scheduled 12h post ───────────────────────────────
-      - name: Post Scheduled Update to X
-        if: |
-          (github.event_name == 'schedule' && github.event.schedule == '10 0,12 * * *') ||
-          (github.event_name == 'workflow_dispatch' && inputs.post_mode == 'scheduled')
-        run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode scheduled
+      # ── X: scheduled 12h post (DISABLED) ───────────────────
+      # - name: Post Scheduled Update to X
+      #   run: pnpm tsx --env-file /dev/null scripts/post-to-x.ts --mode scheduled
