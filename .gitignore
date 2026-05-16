@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files
 .env*
+!.env.example
 !.env.local.example
 
 # vercel
@@ -49,3 +50,10 @@ supabase/.temp/
 
 # GCP service account key
 service-account.json
+
+# Local agent/generated workspace
+.claude/settings.local.json
+.claude/worktrees/
+.mcp.json
+tools/
+/issues.md
