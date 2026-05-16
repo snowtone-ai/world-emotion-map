@@ -49,21 +49,6 @@ type CountryDef = {
   urls: string[];
 };
 
-// ── Continent lookup ───────────────────────────────────────────────────────
-
-const CONTINENT: Record<string, string> = {
-  US: "NA", CA: "NA", MX: "NA",
-  BR: "SA", AR: "SA", CL: "SA", CO: "SA", PE: "SA",
-  GB: "EU", DE: "EU", FR: "EU", IT: "EU", ES: "EU",
-  PL: "EU", UA: "EU", NL: "EU", SE: "EU", CH: "EU",
-  RU: "EU",
-  CN: "AS", JP: "AS", KR: "AS", IN: "AS", ID: "AS",
-  TH: "AS", VN: "AS", PH: "AS", PK: "AS", TR: "AS",
-  SA: "AS", IL: "AS", IR: "AS", AE: "AS",
-  NG: "AF", ZA: "AF", EG: "AF", KE: "AF", ET: "AF",
-  AU: "OC", NZ: "OC",
-};
-
 // ── Emotion profiles per country ───────────────────────────────────────────
 // Values are 0–1 base scores (mid-range ≈ 0.3, strong ≈ 0.55, weak ≈ 0.1)
 

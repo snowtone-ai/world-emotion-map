@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 
-const pnpm = 'pnpm'
+const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 const requiredPaths = [
   'AGENTS.md',
   'CLAUDE.md',
@@ -23,7 +23,7 @@ for (const file of requiredPaths) {
   if (!ok) failures.push(`required:${file}`)
 }
 
-const lint = spawnSync(pnpm, ['lint'], { stdio: 'inherit', shell: process.platform === 'win32' })
+const lint = spawnSync(...createProcessSpec(pnpm, ['lint']), { stdio: 'inherit', shell: false })
 if (lint.status !== 0) {
   failures.push('lint')
 }
@@ -34,3 +34,8 @@ if (failures.length > 0) {
 }
 
 console.log('[verify] all checks passed')
+
+function createProcessSpec(command, args) {
+  if (process.platform !== 'win32') return [command, args]
+  return ['cmd.exe', ['/d', '/s', '/c', command, ...args]]
+}
