@@ -183,16 +183,6 @@ export default function WorldMap({ colorMap, onCountrySelect, selectedCountry, o
           const matched = colorMapCodes.filter((c) => mapboxCodes.has(c));
           const unmatched = colorMapCodes.filter((c) => !mapboxCodes.has(c));
 
-          console.log("[WorldMap debug]", {
-            renderedFeatureCount: features.length,
-            uniqueMapboxCountryCount: mapboxCodes.size,
-            sampleProperties,
-            colorMapSize: colorMapCodes.length,
-            matchedCount: matched.length,
-            unmatchedSample: unmatched.slice(0, 10),
-            mapboxCodesSample: Array.from(mapboxCodes).slice(0, 10),
-          });
-
           onDebugProbeRef.current?.({
             featureCount: features.length,
             sampleProperties,
