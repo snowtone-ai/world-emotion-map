@@ -1,8 +1,8 @@
 # World Emotion Map（WEM）
 
-## 概要
+> 世界中のニュースから感情シグナルをリアルタイム収集し、国別の「今の感情」を3D地球儀で可視化するウェブアプリ
 
-世界中のニュースメディアから感情シグナルをリアルタイムで収集・分析し、国別の「感情の今」をインタラクティブな3D地球儀上に可視化するウェブアプリケーションです。1時間ごとに自動パイプラインがGDELT（世界最大のニュースデータベース）からデータを収集し、喜び・信頼・恐怖・怒り・悲しみ・驚きの6感情スコアを国ごとに算出して地図上に色分け表示します。異常な感情変化を検知すると自動でXへ投稿する機能も搭載しています。
+1時間ごとに自動パイプラインがGDELT（世界最大のニュースデータベース）からデータを収集し、喜び・信頼・恐怖・怒り・悲しみ・驚きの6感情スコアを国ごとに算出して地図上に色分け表示します。異常な感情変化を検知すると自動でXへ投稿する機能も搭載しています。
 
 ---
 
@@ -27,7 +27,7 @@ AI・外部API：Google BigQuery（大規模データ集計）、GDELT Global Kn
 
 ---
 
-## アーキテクチャの特徴
+## 設計の工夫
 
 - Next.jsのServer Componentsをデフォルト採用し、データ取得とレンダリングをサーバーで完結させることでクライアント側の処理を最小化
 - BigQueryのパーティションフィルタを全クエリに強制適用し、無料枠（月1TB）超過によるコスト発生を防ぐ設計
@@ -35,12 +35,12 @@ AI・外部API：Google BigQuery（大規模データ集計）、GDELT Global Kn
 
 ---
 
-## 開発環境のセットアップ
+## セットアップ
 
 必要なツール：Node.js 20以上、pnpm 10以上、Supabaseアカウント、Mapboxトークン、Google BigQueryプロジェクト
 
 ```bash
-git clone https://github.com/souma/world-emotion-map.git
+git clone https://github.com/snowtone-ai/world-emotion-map.git
 cd world-emotion-map
 pnpm install
 
@@ -56,3 +56,9 @@ pnpm dev   # http://localhost:3000
 | `pnpm dev` | 開発サーバー起動 |
 | `pnpm lint` | コード品質チェック |
 | `pnpm build` | 本番ビルド |
+
+---
+
+## ライセンス
+
+MIT
