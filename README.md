@@ -1,20 +1,47 @@
 # World Emotion Map（WEM）
 
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)
+![BigQuery](https://img.shields.io/badge/BigQuery-GCP-blue?logo=google-cloud)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
 > 世界中のニュースから感情シグナルをリアルタイム収集し、国別の「今の感情」を3D地球儀で可視化するウェブアプリ
 
 1時間ごとに自動パイプラインがGDELT（世界最大のニュースデータベース）からデータを収集し、喜び・信頼・恐怖・怒り・悲しみ・驚きの6感情スコアを国ごとに算出して地図上に色分け表示します。異常な感情変化を検知すると自動でXへ投稿する機能も搭載しています。
 
 ---
 
+## データフロー
+
+```
+GDELT GKG API
+    │ hourly cron (GitHub Actions)
+    ▼
+Google BigQuery
+  ├─ partition filter 強制適用（無料枠 1TB/月 守護）
+  └─ 6感情 × 国別集計 + z-score 異常検知
+    │
+    ▼
+Supabase (PostgreSQL + RLS)
+    │ Realtime WebSocket
+    ▼
+Next.js 16 (App Router / Server Components)
+    │
+    ▼
+Mapbox GL JS v3 — 3D インタラクティブ地球儀
+```
+
+---
+
 ## 主な機能
 
-- 3Dインタラクティブ地球儀（Mapbox GL JS）上に国別感情スコアを色分け表示できる
-- 国をクリックすると感情スコアの内訳・過去24時間のトレンド・根拠ニュース記事を確認できる
-- 毎時自動パイプラインがGDELT→BigQuery→Supabaseの流れでデータを更新し、ページリロードなしで反映される
-- 過去7日間のベースラインからz-score（統計的な偏差）で異常を検知し、自動でXへアラートを投稿できる
-- 経済・政治・テクノロジーなどセクター別・地域別の感情比較ができる
-- Googleアカウントでサインインして国・セクターをお気に入り登録できる
-- 日本語・英語の多言語対応（PWAとしてスマートフォンにインストール可能）
+- 3Dインタラクティブ地球儀（Mapbox GL JS）上に国別感情スコアを色分け表示
+- 国クリックで感情内訳・過去24時間トレンド・根拠ニュース記事を表示
+- GDELT→BigQuery→Supabase の毎時自動パイプライン（GitHub Actions cron）
+- 過去7日ベースラインからz-scoreで異常検知し、X（Twitter）にアラート自動投稿
+- セクター別・地域別の感情比較、Googleアカウントでお気に入り登録
+- 多言語対応（日本語・英語）、PWAとしてモバイルインストール可能
 
 ---
 
@@ -22,34 +49,31 @@
 
 | カテゴリ | 技術・ツール |
 |---|---|
-| フロントエンド | Next.js 16（Reactベースのウェブアプリフレームワーク）、TypeScript、Tailwind CSS v4、Mapbox GL JS v3（3D地球儀ライブラリ） |
-| データベース | Supabase（PostgreSQL＋Google OAuth認証を提供するクラウドサービス） |
-| インフラ・環境 | Vercel（ホスティングプラットフォーム）、GitHub Actions（毎時cronパイプライン・自動デプロイ） |
-| AI・外部API | Google BigQuery（大規模データ集計）、GDELT Global Knowledge Graph（ニュースデータソース）、X API v2（自動投稿・異常アラート） |
+| フロントエンド | Next.js 16, TypeScript, Tailwind CSS v4, Mapbox GL JS v3 |
+| データベース | Supabase（PostgreSQL + RLS + Google OAuth） |
+| インフラ | Vercel, GitHub Actions（hourly cron pipeline） |
+| データ処理 | Google BigQuery, GDELT GKG, X API v2 |
 
 ---
 
 ## 設計の工夫
 
-- Next.jsのServer Componentsをデフォルト採用し、データ取得とレンダリングをサーバーで完結させることでクライアント側の処理を最小化
-- BigQueryのパーティションフィルタを全クエリに強制適用し、無料枠（月1TB）超過によるコスト発生を防ぐ設計
-- GDELTのFIPS-10-4（地域コード体系）をMapboxのISO 3166-1形式に変換する独自マッピングレイヤー（70件以上）を実装
+- **Server Components ファースト** — データ取得とレンダリングをサーバーで完結、クライアントJS最小化
+- **コスト制御** — BigQueryのパーティションフィルタを全クエリに強制適用し、無料枠（月1TB）を超過しない設計
+- **地域コード変換** — GDELTのFIPS-10-4体系からMapboxのISO 3166-1形式へ変換する独自マッピングレイヤー（70件超）を実装
 
 ---
 
 ## セットアップ
 
-必要なツール：Node.js 20以上、pnpm 10以上、Supabaseアカウント、Mapboxトークン、Google BigQueryプロジェクト
+必要なツール：Node.js 20+、pnpm 10+、Supabaseアカウント、Mapboxトークン、Google BigQueryプロジェクト
 
 ```bash
 git clone https://github.com/snowtone-ai/world-emotion-map.git
 cd world-emotion-map
 pnpm install
-
 cp .env.local.example .env.local
-# 必須: NEXT_PUBLIC_MAPBOX_TOKEN, NEXT_PUBLIC_SUPABASE_URL,
-#       NEXT_PUBLIC_SUPABASE_ANON_KEY, BIGQUERY_PROJECT_ID など
-
+# 必須: NEXT_PUBLIC_MAPBOX_TOKEN, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, BIGQUERY_PROJECT_ID
 pnpm dev   # http://localhost:3000
 ```
 
