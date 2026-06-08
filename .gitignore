@@ -57,3 +57,10 @@ service-account.json
 .mcp.json
 tools/
 /issues.md
+
+# GCP service account keys (wildcard)
+service-account*.json
+credentials.json
+*-service-account.json
+.claude/transcripts/
+.claude/cache/
