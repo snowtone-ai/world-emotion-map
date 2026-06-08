@@ -5,6 +5,7 @@
  */
 
 import { ImageResponse } from "next/og";
+import { isSupabasePaused } from "@/lib/supabase/pause";
 
 export const runtime = "edge";
 export const revalidate = 3600;
@@ -37,6 +38,8 @@ async function fetchTopEmotion(): Promise<{
   emotion: string;
   score: number;
 } | null> {
+  if (isSupabasePaused()) return null;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;

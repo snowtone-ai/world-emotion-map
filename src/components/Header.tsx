@@ -5,14 +5,21 @@ import { SignInButton } from "./SignInButton";
 import { UserMenu } from "./UserMenu";
 import { ViewToggle } from "./ViewToggle";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabasePaused } from "@/lib/supabase/pause";
 
 export async function Header() {
   const t = await getTranslations("Header");
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  if (!isSupabasePaused()) {
+    try {
+      const supabase = await createClient();
+      const result = await supabase.auth.getUser();
+      user = result.data.user;
+    } catch {
+      user = null;
+    }
+  }
 
   return (
     <header className="glass-light border-b border-[var(--wem-border)] px-4 h-14 flex items-center justify-between shrink-0 z-10">

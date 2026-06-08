@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { Emotion } from "@/lib/emotions";
+import { isSupabasePaused } from "@/lib/supabase/pause";
 
 export const revalidate = 300; // 5 min cache
 
@@ -36,6 +37,10 @@ export type SectorDataItem = {
 };
 
 export async function GET() {
+  if (isSupabasePaused()) {
+    return NextResponse.json({ data: [] });
+  }
+
   const supabase = await createClient();
 
   const { data: defs, error: defErr } = await supabase

@@ -6,6 +6,7 @@ import { SectorSection } from "@/components/map/SectorSection";
 import type { CountryEmotionRaw, Emotion } from "@/lib/emotions";
 import type { SectorDataItem } from "@/app/api/sectors/route";
 import { normalizeCountryCode } from "@/lib/fips-to-iso";
+import { isSupabasePaused } from "@/lib/supabase/pause";
 
 // ── Emotion keys ───────────────────────────────────────────────────────────
 const EMOTIONS: Emotion[] = [
@@ -21,6 +22,8 @@ const EMOTIONS: Emotion[] = [
 
 // ── Fetch latest emotion snapshot per country ──────────────────────────────
 async function getEmotionData(): Promise<CountryEmotionRaw[]> {
+  if (isSupabasePaused()) return [];
+
   try {
     const supabase = await createClient();
 
@@ -79,6 +82,8 @@ async function getEmotionData(): Promise<CountryEmotionRaw[]> {
 
 // ── Fetch sector emotion data ──────────────────────────────────────────────
 async function getSectorData(): Promise<SectorDataItem[]> {
+  if (isSupabasePaused()) return [];
+
   try {
     const supabase = await createClient();
 
@@ -155,10 +160,18 @@ export default async function Home({
   const [{ locale }, { view }] = await Promise.all([params, searchParams]);
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let userId: string | null = null;
+  if (!isSupabasePaused()) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+  }
 
   if (view === "sector") {
     const sectorData = await getSectorData();
@@ -172,7 +185,7 @@ export default async function Home({
   const emotionData = await getEmotionData();
   return (
     <Suspense>
-      <MapSection data={emotionData} userId={user?.id ?? null} />
+      <MapSection data={emotionData} userId={userId} />
     </Suspense>
   );
 }

@@ -13,6 +13,11 @@ type Props = {
 };
 
 export function UserMenu({ avatarUrl, email, favoritesLabel, signOutLabel }: Props) {
+  const paused = (() => {
+    const value = process.env.NEXT_PUBLIC_SUPABASE_PAUSED?.toLowerCase();
+    return !value || !["0", "false", "off", "no"].includes(value);
+  })();
+
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -28,6 +33,7 @@ export function UserMenu({ avatarUrl, email, favoritesLabel, signOutLabel }: Pro
   }, []);
 
   const handleSignOut = async () => {
+    if (paused) return;
     const supabase = createClient();
     await supabase.auth.signOut();
     setOpen(false);

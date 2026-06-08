@@ -2,12 +2,17 @@ import createMiddleware from "next-intl/middleware";
 import { type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
 import { updateSession } from "@/lib/supabase/proxy";
+import { isSupabasePaused } from "@/lib/supabase/pause";
 
 const intlMiddleware = createMiddleware(routing);
 
 export async function proxy(request: NextRequest) {
   // 1. Run next-intl middleware (locale routing / rewrites)
   const response = intlMiddleware(request);
+
+  if (isSupabasePaused()) {
+    return response;
+  }
 
   // 2. Refresh Supabase auth session and merge cookies
   const supabaseResponse = await updateSession(request);

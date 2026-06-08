@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { CountryEmotionRaw, Emotion } from "@/lib/emotions";
 import { normalizeCountryCode } from "@/lib/fips-to-iso";
+import { isSupabasePaused } from "@/lib/supabase/pause";
 
 const EMOTIONS: Emotion[] = [
   "joy", "trust", "fear", "anger", "sadness", "surprise", "optimism", "uncertainty",
@@ -13,6 +14,13 @@ const EMOTIONS: Emotion[] = [
  * (bypasses Server Component cookie-based client).
  */
 export async function GET() {
+  if (isSupabasePaused()) {
+    return NextResponse.json(
+      { data: [], message: "Supabase connection is temporarily paused" },
+      { status: 200 },
+    );
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
     ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
