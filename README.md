@@ -20,10 +20,12 @@
 
 ## 技術スタック
 
-フロントエンド：Next.js 16（Reactベースのウェブアプリフレームワーク）、TypeScript、Tailwind CSS v4、Mapbox GL JS v3（3D地球儀ライブラリ）
-データベース：Supabase（PostgreSQL＋Google OAuth認証を提供するクラウドサービス）
-インフラ・環境：Vercel（ホスティングプラットフォーム）、GitHub Actions（毎時cronパイプライン・自動デプロイ）
-AI・外部API：Google BigQuery（大規模データ集計）、GDELT Global Knowledge Graph（ニュースデータソース）、X API v2（自動投稿・異常アラート）
+| カテゴリ | 技術・ツール |
+|---|---|
+| フロントエンド | Next.js 16（Reactベースのウェブアプリフレームワーク）、TypeScript、Tailwind CSS v4、Mapbox GL JS v3（3D地球儀ライブラリ） |
+| データベース | Supabase（PostgreSQL＋Google OAuth認証を提供するクラウドサービス） |
+| インフラ・環境 | Vercel（ホスティングプラットフォーム）、GitHub Actions（毎時cronパイプライン・自動デプロイ） |
+| AI・外部API | Google BigQuery（大規模データ集計）、GDELT Global Knowledge Graph（ニュースデータソース）、X API v2（自動投稿・異常アラート） |
 
 ---
 
