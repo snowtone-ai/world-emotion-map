@@ -4,7 +4,6 @@ import { existsSync } from 'node:fs'
 
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 const requiredPaths = [
-  'AGENTS.md',
   'CLAUDE.md',
   'HANDOFF-JA.md',
   'tasks.md',
