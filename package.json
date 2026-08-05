@@ -26,7 +26,7 @@
     "@supabase/supabase-js": "^2.103.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "adm-zip": "^0.5.17",
+    "adm-zip": "^0.6.0",
     "js-yaml": "^4.3.0",
     "twitter-api-v2": "^1.29.0",
     "class-variance-authority": "^0.7.1",
