@@ -25,31 +25,47 @@ function parseMode(raw: string | null | undefined): ColorMode {
   return 4; // default
 }
 
+// Live refresh cadence. Upstream data updates hourly via the GDELT pipeline,
+// but polling keeps the map current without a page reload; the API route's
+// CDN cache (s-maxage=300) absorbs the extra request volume.
+const POLL_INTERVAL_MS = 60_000;
+
 export function MapSection({ data: serverData, userId }: { data: CountryEmotionRaw[]; userId: string | null }) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Client-side fallback: if server provided no data, fetch from API route
+  // Client-side data: server snapshot fallback (empty serverData) AND
+  // periodic live refresh (keeps the map updated without a reload).
   const [clientData, setClientData] = useState<CountryEmotionRaw[] | null>(null);
 
   useEffect(() => {
-    if (serverData.length > 0) return; // Server data is fine, no fallback needed
-
     let cancelled = false;
-    fetch("/api/emotions")
-      .then((res) => res.json())
-      .then((json: { data?: CountryEmotionRaw[] }) => {
+
+    async function refresh() {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const res = await fetch("/api/emotions", { cache: "no-store" });
+        const json: { data?: CountryEmotionRaw[] } = await res.json();
         if (!cancelled && json.data && json.data.length > 0) {
           setClientData(json.data);
         }
-      })
-      .catch((err) => console.error("[MapSection] Fallback fetch failed:", err));
+      } catch (err) {
+        console.error("[MapSection] Refresh fetch failed:", err);
+      }
+    }
 
-    return () => { cancelled = true; };
+    if (serverData.length === 0) refresh(); // immediate fallback when SSR had nothing
+    const id = setInterval(refresh, POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [serverData]);
 
+  // Once a live refresh has landed, prefer it over the initial SSR snapshot.
   const data = useMemo(
-    () => (serverData.length > 0 ? serverData : (clientData ?? [])),
+    () => clientData ?? (serverData.length > 0 ? serverData : []),
     [serverData, clientData]
   );
 
